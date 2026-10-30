@@ -2,8 +2,8 @@
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-HERE = REPO_ROOT / "PS5-Automation-Python" / "gimx-session"
+HW_ROOT = Path(__file__).resolve().parents[1]
+HERE = HW_ROOT / "gimx-session"
 sys.path.insert(0, str(HERE))
 from gimx_session import GimxSession, load_config, running_gimx_pids  # noqa: E402
 

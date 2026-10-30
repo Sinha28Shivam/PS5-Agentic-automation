@@ -5,7 +5,7 @@ Validates controls.yaml and the console-profile plumbing WITHOUT any hardware,
 GIMX install or serial port. Run after editing console profiles or the button
 map:
 
-    python tools/rig/ps5_profile_check.py
+    python tests/ps5_profile_check.py
 
 It checks the things that broke silently during the Xbox build:
   * every Xbox-era control name still resolves (aliases preserved)
@@ -19,8 +19,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-AUTOMATION = REPO_ROOT / "PS5-Automation-Python"
+HW_ROOT = Path(__file__).resolve().parents[1]
+AUTOMATION = HW_ROOT
 sys.path.insert(0, str(AUTOMATION / "test-controller"))
 sys.path.insert(0, str(AUTOMATION / "gimx-session"))
 

@@ -1,6 +1,6 @@
 # rig_probe.ps1 - read-only snapshot of the PS5/DS4 rig before flashing.
 # Changes nothing. Run:
-#   powershell -ExecutionPolicy Bypass -File tools\rig\rig_probe.ps1
+#   powershell -ExecutionPolicy Bypass -File diagnostics\rig_probe.ps1
 
 $ErrorActionPreference = "Continue"
 

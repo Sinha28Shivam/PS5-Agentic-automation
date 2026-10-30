@@ -1,14 +1,14 @@
 """
 prove_input_reaches_ps5.py - the ONLY honest test that input reaches the PS5.
 
-    python tools/rig/prove_input_reaches_ps5.py
-    python tools/rig/prove_input_reaches_ps5.py --button right --times 4
+    python tests/prove_input_reaches_ps5.py
+    python tests/prove_input_reaches_ps5.py --button right --times 4
 
 WHY THIS SCRIPT EXISTS
 ----------------------
 "GIMX accepted the event" is NOT proof. An unauthenticated or mis-wired session
 accepts every event, prints "ok", and delivers nothing. This project already
-lost hours to exactly that (docs/07-lessons-learned.md): six cheerful successes
+lost hours to exactly that (see docs/HOW_TO_TEST_SIGNAL.md): six cheerful successes
 in a row while the TV never moved.
 
 The only proof is a PIXEL CHANGE on the capture card:
@@ -34,8 +34,8 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-AUTOMATION = REPO_ROOT / "PS5-Automation-Python"
+HW_ROOT = Path(__file__).resolve().parents[1]
+AUTOMATION = HW_ROOT
 sys.path.insert(0, str(AUTOMATION / "test-controller"))
 sys.path.insert(0, str(AUTOMATION / "gimx-session"))
 sys.path.insert(0, str(AUTOMATION / "capture"))
@@ -46,7 +46,7 @@ from capture import (ScreenCapture, difference,   # noqa: E402
 from gimx_session import session_is_up            # noqa: E402
 from test_controller import ConsolePad            # noqa: E402
 
-OUT_DIR = REPO_ROOT / "artifacts" / "rig" / "input-proof"
+OUT_DIR = HW_ROOT / "artifacts" / "input-proof"
 
 # DS4 v1 = 054C:05C4, DS4 v2 = 054C:09CC. DualSense (0CE6) is NOT usable by
 # GIMX for authentication, so it deliberately does not count here.
@@ -94,7 +94,7 @@ def main() -> int:
     print("\n[1] GIMX session")
     if not session_is_up(quiet=True):
         print("    FAIL: no GIMX session reachable at 127.0.0.1:51914")
-        print("    Start one:  python PS5-Automation-Python/gimx-session/"
+        print("    Start one:  python gimx-session/"
               "gimx_session.py start")
         return 2
     print("    reachable (NOTE: reachable != authenticated != delivering)")

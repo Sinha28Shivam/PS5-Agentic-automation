@@ -1,6 +1,6 @@
 # adapter_probe.ps1 - ask the GIMX adapter what firmware it is running.
 #
-#   powershell -ExecutionPolicy Bypass -File tools\rig\adapter_probe.ps1
+#   powershell -ExecutionPolicy Bypass -File flash-leonardo\adapter_probe.ps1
 #
 # This is the ONLY honest proof that the EMUPS4 flash took. GIMX prints
 #     GIMX adapter detected, controller type is: DS4

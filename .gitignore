@@ -12,7 +12,7 @@
 !.env.example
 
 # --- run artifacts ---------------------------------------------------------
-# Rig probes write to artifacts/rig/, agent runs to PS5-Agentic-Testing/artifacts/.
+# Proof runs write to PS5-Automation-Python/artifacts/, agent runs to PS5-Agentic-Testing/artifacts/.
 artifacts/
 PS5-Agentic-Testing/artifacts/
 PS5-Agentic-Testing/scratch/

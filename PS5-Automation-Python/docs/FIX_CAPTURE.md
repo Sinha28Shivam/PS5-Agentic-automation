@@ -80,35 +80,18 @@ debugging.
 ## Verify after each change
 
 ```powershell
-# 1. is any resolution arriving at all?
-powershell -ExecutionPolicy Bypass -File tools\rig\check_input_resolution.ps1
-```
+# 1. the framework's own check (card opens, signal present, 1920x1080)
+python capture\capture.py preflight
 
-Target:
-
-```
-RESOLUTION : 1920x1080
-FRAME RATE : 59.94 fps   (or 60)
-CODEC      : mjpeg
-CORRECT - 1080p, exactly what controls.yaml expects.
-```
-
-Still `640x480` + `No JPEG data` ⇒ signal still absent; re-check steps 1–2.
-
-```powershell
 # 2. grab a real picture and LOOK at it
-powershell -ExecutionPolicy Bypass -File tools\rig\grab_by_name.ps1
+python capture\capture.py grab
+
+# 3. the full proof (needs a GIMX session + PS tap)
+python tests\prove_input_reaches_ps5.py
 ```
 
-A real 1080p frame is usually **> 100 KB**. Under ~12 KB is still black.
-
-```bash
-# 3. the framework's own check
-cd PS5-Automation-Python && python capture\capture.py preflight
-
-# 4. the full proof (needs a GIMX session + PS tap)
-python tools/rig/prove_input_reaches_ps5.py
-```
+A real 1080p frame is usually **> 100 KB**; under ~12 KB is still black.
+Compare with `docs/reference/ps5-home-1080p.png`.
 
 ---
 
@@ -124,9 +107,9 @@ python tools/rig/prove_input_reaches_ps5.py
 
 ```powershell
 # report holders
-powershell -ExecutionPolicy Bypass -File tools\rig\free_capture.ps1
+powershell -ExecutionPolicy Bypass -File diagnostics\free_capture.ps1
 # ...and actually close them
-powershell -ExecutionPolicy Bypass -File tools\rig\free_capture.ps1 -Close
+powershell -ExecutionPolicy Bypass -File diagnostics\free_capture.ps1 -Close
 ```
 
 ## Never "fix" this by changing the index

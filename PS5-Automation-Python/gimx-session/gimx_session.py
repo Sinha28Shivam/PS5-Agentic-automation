@@ -331,6 +331,31 @@ class GimxSession:
                 break
 
         if self.proc.poll() is not None:
+            log = "\n".join(self._log).lower()
+            if "no game controller was found" in log:
+                print("\nGIMX exited: the adapter is fine, but NO DualShock 4 "
+                      "is connected to this PC.")
+                print("  The DS4 is the auth pass-through for PS5/PS4 - it is "
+                      "mandatory.")
+                print("  * plug the DS4 into a PC USB port with a DATA cable "
+                      "(not charge-only)")
+                print("  * Bluetooth does NOT count - it must be wired")
+                print("  * it must NOT be connected to the PS5 instead")
+                print("  * check: Get-PnpDevice -PresentOnly | ? InstanceId "
+                      "-match 'VID_054C'")
+                return False
+            if "failed to read packet header" in log:
+                print("\nGIMX exited: COM8 (FTDI) opened, but the Leonardo "
+                      "behind it did not answer.")
+                print("  * the Leonardo is powered by the PS5's USB port - "
+                      "the PS5 must be ON (not off / rest mode)")
+                print("  * power-cycle the adapter: unplug the Leonardo's "
+                      "USB from the PS5, wait 5s, plug it back")
+                print("    (a previous failed session can leave it stuck at "
+                      "2000000 bps)")
+                print("  * check wiring: FTDI TX->D0(RX), FTDI RX->D1(TX), "
+                      "GND<->GND")
+                return False
             print("\nGIMX exited during startup. Most likely causes:")
             print("  * the serial port is held by another process")
             print("  * another GIMX session is already running")

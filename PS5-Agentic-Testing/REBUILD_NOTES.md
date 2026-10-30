@@ -17,7 +17,7 @@ Executed 2026-10-30. Scope chosen: **agentic only**.
 | Path | Why |
 |---|---|
 | `PS5-Automation-Python/` → `PS5-Automation-Python/` | **Hardware-verified on PS5 today.** The folder name was Xbox; the code is not. |
-| `tools/rig/` | PS5 rig tooling: flasher, probes, capture diagnostics, input proof |
+| `temp_code_test/hardware/` | PS5 rig tooling; the needed parts now live in `PS5-Automation-Python/` |
 
 The hardware layer is already PlayStation-native:
 `controls.yaml` has `ps5`/`ps4` profiles (`gimx_type: DS4`, `firmware:
@@ -39,20 +39,18 @@ PlayStation button names with Xbox names kept only as aliases, and no
 
 ## Repo reorganisation (2026-10-30, done)
 
-| Before | After |
-|---|---|
-| `Xbox-Automation-Python/` | `PS5-Automation-Python/` (rename complete; `rename_hw.ps1` deleted) |
-| `temp_code_test/hardware/*.ps1, *.py` (gitignored) | `tools/rig/` (committed) |
-| `temp_code_test/hardware/*.md` | `docs/hardware/` |
-| `temp_code_test/artifacts/capture-check/framework-grab.png` | `docs/hardware/reference/ps5-home-1080p.png` |
-| other `temp_code_test/artifacts/*.png` | deleted (copies in `PS5-RIG-TOOLS-BACKUP`) |
-| empty `.github/workflows/` | deleted |
-
-Also: `xbox_one` / `xbox_360` profiles dropped from `controls.yaml`; the
-flasher now defaults to `EMUPS4`; the GIMX auth banner says *tap PS* and
-`gimx_session.py` now recognises the DS4 prompt
-`Press the key/button assigned to PS.`. Rig scripts write output to
-`artifacts/rig/` (gitignored).
+- `Xbox-Automation-Python/` renamed to `PS5-Automation-Python/`.
+- `temp_code_test/` removed. The only rig tooling still needed now lives
+  inside the hardware layer:
+  - `flash-leonardo/flash_leonardo.ps1` (rewritten with the method that
+    actually flashed EMUPS4) + `flash-leonardo/adapter_probe.ps1`
+  - `diagnostics/rig_probe.ps1`, `diagnostics/free_capture.ps1`
+  - `tests/` (offline self-tests + `prove_input_reaches_ps5.py`)
+  - `docs/` (FLASH_NOTES, FIX_CAPTURE, HOW_TO_TEST_SIGNAL, reference frame)
+- One-off investigation scripts (flash retries, capture probes, driver/port
+  watchers) and their write-ups were deleted; copies remain in
+  `PS5-RIG-TOOLS-BACKUP` and git history.
+- `xbox_one` / `xbox_360` profiles dropped from `controls.yaml`.
 
 > Do not run GIMX as administrator. Elevated it claims REALTIME priority and
 > grabs input devices — that froze a PC during this project's development.
@@ -94,13 +92,14 @@ comment saying to capture a frame rather than guess.
 
 1. Re-verify the hardware layer after the rename:
    ```powershell
-   powershell -File tools\rig\manual_check.ps1
-   cd PS5-Automation-Python; python capture\capture.py preflight
+   cd PS5-Automation-Python
+   powershell -File diagnostics\rig_probe.ps1
+   python capture\capture.py preflight
    ```
 2. Reconnect the DS4 **by cable**, start a session, **tap PS**, then get the
    first full PASS:
    ```bash
-   python tools/rig/prove_input_reaches_ps5.py
+   python PS5-Automation-Python/tests/prove_input_reaches_ps5.py
    ```
 3. Only then build agents — and derive every screen signature and keyboard
    layout from real captured PS5 frames.

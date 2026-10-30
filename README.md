@@ -15,20 +15,18 @@ PC ──USB──> FTDI ──UART──> Leonardo (EMUPS4) ──USB──> PS
 
 | Path | What |
 |---|---|
-| [`PS5-Automation-Python/`](PS5-Automation-Python/) | Hardware layer (verified): GIMX session, controller input, capture, flasher. `config/controls.yaml` is the single source of truth for controls/timing. |
+| [`PS5-Automation-Python/`](PS5-Automation-Python/) | Hardware layer (verified): flasher, GIMX session, controller input, capture, diagnostics, tests, docs. See its [README](PS5-Automation-Python/README.md). |
 | [`PS5-Agentic-Testing/`](PS5-Agentic-Testing/) | Agentic layer (scaffolding only). See its [README](PS5-Agentic-Testing/README.md) and [REBUILD_NOTES](PS5-Agentic-Testing/REBUILD_NOTES.md). |
-| [`tools/rig/`](tools/rig/) | Rig bring-up, probes, diagnostics and the input-proof test. |
-| [`docs/hardware/`](docs/hardware/) | Hardware findings — read before re-debugging the rig. |
-| `artifacts/` | Run/probe output (gitignored). |
 
 ## Quick start
 
 ```powershell
 pip install -r PS5-Automation-Python\requirements.txt
 python PS5-Agentic-Testing\validate_config.py          # offline config checks
-python tools\rig\ps5_profile_check.py                  # offline profile checks
-python PS5-Automation-Python\gimx-session\gimx_session.py start   # then TAP PS on the DS4
-python tools\rig\prove_input_reaches_ps5.py            # before -> input -> after proof
+cd PS5-Automation-Python
+python tests\ps5_profile_check.py                       # offline profile checks
+python gimx-session\gimx_session.py start               # then TAP PS on the DS4
+python tests\prove_input_reaches_ps5.py                 # before -> input -> after proof
 ```
 
 ## PS5 constraints

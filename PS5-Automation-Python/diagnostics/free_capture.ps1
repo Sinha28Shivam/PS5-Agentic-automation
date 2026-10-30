@@ -1,7 +1,7 @@
 # free_capture.ps1 - release the capture card, then confirm it is really free.
 #
-#   powershell -ExecutionPolicy Bypass -File tools\rig\free_capture.ps1          # report only
-#   powershell -ExecutionPolicy Bypass -File tools\rig\free_capture.ps1 -Close   # actually close them
+#   powershell -ExecutionPolicy Bypass -File diagnostics\free_capture.ps1          # report only
+#   powershell -ExecutionPolicy Bypass -File diagnostics\free_capture.ps1 -Close   # actually close them
 #
 # Only ONE application may hold a capture device at a time. RECentral 4 is the
 # usual culprit: it is genuinely useful for eyeballing the PS5 and for checking

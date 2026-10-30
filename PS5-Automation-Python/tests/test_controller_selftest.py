@@ -2,8 +2,8 @@
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-TEST_CONTROLLER_DIR = REPO_ROOT / "PS5-Automation-Python" / "test-controller"
+HW_ROOT = Path(__file__).resolve().parents[1]
+TEST_CONTROLLER_DIR = HW_ROOT / "test-controller"
 sys.path.insert(0, str(TEST_CONTROLLER_DIR))
 from test_controller import ConsolePad  # noqa: E402
 

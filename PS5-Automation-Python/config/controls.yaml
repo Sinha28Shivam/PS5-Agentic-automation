@@ -108,7 +108,7 @@ consoles:
 #  Without --config, GIMX starts, prints "adapter detected", accepts every
 #  event and forwards NOTHING - not even a physical controller. That failure
 #  is completely silent and is the single most expensive mistake in this
-#  project's history (docs/07-lessons-learned.md).
+#  project's history.
 #
 #  The ps5/ps4 profiles above therefore CANNOT SEND INPUT YET. Create a DS4
 #  launcher config in the GIMX GUI, save it (it lands in the GIMX config dir),
@@ -136,7 +136,7 @@ connection:
 # CAPTURE (video input for the perception / verification layer)
 #
 # HARDWARE-VERIFIED: a 1920x1080 frame of the real PS5 home screen was
-# captured 2026-10-30 (docs/hardware/reference/ps5-home-1080p.png).
+# captured 2026-10-30 (docs/reference/ps5-home-1080p.png).
 #
 #   * The card is a STANDARD UVC device - no vendor SDK needed.
 #   * RECentral 4 is NOT required and must be CLOSED while automating:
@@ -156,8 +156,7 @@ connection:
 #
 #     Fix: capture.py now resolves the device BY NAME via ffmpeg and only falls
 #     back to opencv_index if the name cannot be found. Run
-#     `powershell -File tools\rig\capture_diagnose.ps1` or
-#     `python tools/rig/capture_probe.py` to see every device.
+#     `python capture\capture.py preflight` to see which device was opened.
 # ---------------------------------------------------------------------------
 capture:
   device_name: "AVerMedia ExtremeCap UVC"   # ffmpeg dshow name (stable)
