@@ -23,7 +23,7 @@ _lastrun.txt
 # --- captured frames -------------------------------------------------------
 # Ignored everywhere EXCEPT docs/, where reference frames are committed on purpose.
 *.png
-!docs/**/*.png
+!**/docs/**/*.png
 
 # --- temporary / experimental ----------------------------------------------
 TEMP_*

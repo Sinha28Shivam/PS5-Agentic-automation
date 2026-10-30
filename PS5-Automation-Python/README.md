@@ -10,7 +10,8 @@ Run all commands from this folder.
 | `flash-leonardo/flash_leonardo.ps1` | Flash EMUPS4 onto the Leonardo (tap RESET when prompted) |
 | `flash-leonardo/adapter_probe.ps1` | Confirm the adapter reports `controller type is: DS4` |
 | `gimx-session/gimx_session.py` | Start / status / stop the GIMX session (`start`, then **tap PS** on the wired DS4) |
-| `test-controller/test_controller.py` | Send buttons, sticks, triggers, macros |
+| `test-controller/test_controller.py` | Send buttons, sticks, triggers, macros (`open_home`, `open_search`, `submit_search`) |
+| `test-controller/keyboard.py` | Type text on the PS5 on-screen keyboard from the `ps5_system_en` layout (`plan` / `type`) |
 | `capture/capture.py` | Capture card: `preflight`, `grab`, `watch` |
 | `console-connector/console_connector.py` | Low-level serial link probe (FTDI ↔ Leonardo) |
 | `diagnostics/rig_probe.ps1` | Read-only rig snapshot: GIMX install, COM ports, FTDI, DS4, COM8 lock |
@@ -37,6 +38,18 @@ python tests\ps5_profile_check.py
 python tests\gimx_session_selftest.py
 python tests\test_controller_selftest.py
 ```
+
+## Search + type (verified 2026-10-30)
+
+```powershell
+python test-controller\test_controller.py macro open_home
+python test-controller\test_controller.py macro open_search     # keyboard open, focus on "g"
+python test-controller\keyboard.py type "astro bot"
+python test-controller\test_controller.py macro submit_search   # R2 = Done
+```
+
+Button behaviour and keyboard geometry are documented in
+[docs/PS5_CONTROLS.md](docs/PS5_CONTROLS.md).
 
 ## Flashing
 

@@ -218,66 +218,79 @@ buttons:
   cross:
     gimx: "cross"
     aliases: ["a", "confirm", "select_item"]
-    description: "Cross button - confirm/select (Xbox A position)"
+    description: "Cross - confirm/select. VERIFIED PS5 2026-10-30 (opens search, types focused key)"
+    verified: true
   circle:
     gimx: "circle"
     aliases: ["b", "cancel", "back_action"]
-    description: "Circle button - cancel/back (Xbox B position)"
+    description: "Circle - back/cancel. VERIFIED PS5 (closes menus, keyboard, search -> Home)"
+    verified: true
   square:
     gimx: "square"
     aliases: ["x"]
-    description: "Square button (Xbox X position)"
+    description: "Square. On the PS5 keyboard = backspace (VERIFIED). No visible action on Home."
+    verified: true
   triangle:
     gimx: "triangle"
     aliases: ["y"]
-    description: "Triangle button (Xbox Y position)"
+    description: "Triangle. Home: jumps focus to the Search icon (VERIFIED). Keyboard: space (VERIFIED)."
+    verified: true
 
   # ---- D-pad --------------------------------------------------------------
   up:
     gimx: "up"
     aliases: ["u", "dpad_up"]
-    description: "D-pad up"
+    description: "D-pad up. VERIFIED PS5 2026-10-30"
+    verified: true
   down:
     gimx: "down"
     aliases: ["d", "dpad_down"]
-    description: "D-pad down"
+    description: "D-pad down. VERIFIED PS5 2026-10-30"
+    verified: true
   left:
     gimx: "left"
     aliases: ["l", "dpad_left"]
-    description: "D-pad left"
+    description: "D-pad left. VERIFIED PS5 2026-10-30"
+    verified: true
   right:
     gimx: "right"
     aliases: ["r", "dpad_right"]
-    description: "D-pad right"
+    description: "D-pad right. VERIFIED PS5 2026-10-30"
+    verified: true
 
   # ---- System buttons -----------------------------------------------------
   options:
     gimx: "start"
     aliases: ["menu", "start", "hamburger", "pause"]
-    description: "Options button (DS4) - GIMX calls it 'start'"
+    description: "Options - GIMX 'start'. VERIFIED PS5: opens the item's options menu"
+    verified: true
   share:
     gimx: "select"
     aliases: ["view", "select", "back", "create", "windows"]
     description: >
       Share button (DS4) / Create (DualSense) - GIMX calls it 'select'.
-      This is the Xbox View position.
+      NOT yet verified on PS5 (opens the Create menu / screenshot).
   ps:
     gimx: "PS"
     aliases: ["guide", "xbox", "home", "playstation", "dashboard"]
     description: >
       PS (PlayStation logo) button. GIMX name is 'PS' ('guide' is REJECTED).
-      Opens the PS5 Control Center; HOLD opens the power menu. NOTE: unlike
-      Xbox, this button is NOT part of session authentication.
+      VERIFIED PS5: a tap opens the Control Center (Circle closes it).
+      The session-arming PS tap must come from the HUMAN on the wired DS4,
+      not from GIMX.
+    verified: true
 
   # ---- Shoulder buttons ---------------------------------------------------
   l1:
     gimx: "l1"
     aliases: ["lb", "left_bumper"]
-    description: "L1 shoulder button (Xbox LB position)"
+    description: "L1. VERIFIED PS5: Home Media -> Games tab. Keyboard: cursor left"
+    verified: true
   r1:
     gimx: "r1"
     aliases: ["rb", "right_bumper"]
-    description: "R1 shoulder button (Xbox RB position)"
+    description: "R1. VERIFIED PS5: Home Games -> Media tab. Keyboard: cursor right / 1st suggestion"
+    verified: true
 
   # ---- Stick clicks -------------------------------------------------------
   l3:
@@ -287,7 +300,7 @@ buttons:
   r3:
     gimx: "r3"
     aliases: ["rs", "right_stick_click", "rsb"]
-    description: "Right stick press (click)"
+    description: "Right stick press (click). PS5 keyboard: accented-letters page (VERIFIED)"
 
 # ---------------------------------------------------------------------------
 # TRIGGERS  (analog 0..255)
@@ -299,14 +312,14 @@ triggers:
     min: 0
     max: 32767
     default_press: 32767          # value used for a normal "press"
-    description: "L2 trigger (analog, Xbox LT position)"
+    description: "L2 trigger (analog). PS5 keyboard: shift (VERIFIED)"
   r2:
     gimx: "r2"
     aliases: ["rt", "right_trigger"]
     min: 0
     max: 32767
     default_press: 32767
-    description: "R2 trigger (analog, Xbox RT position)"
+    description: "R2 trigger (analog). PS5 keyboard: Done - closes it, focuses 1st result (VERIFIED)"
 
 # ---------------------------------------------------------------------------
 # STICKS (analog axes)
@@ -364,87 +377,119 @@ timing:
   udp_max_retries: 6
 
 # ---------------------------------------------------------------------------
-# TEXT ENTRY
-# Search-box typing uses a hybrid model:
-#   * static keyboard geometry for deterministic navigation
-#   * OCR on the search field as the guardrail
-# These defaults target reliable Xbox search typing first. If your on-screen
-# keyboard differs, adjust the layout rows / regions here rather than changing
-# code.
+# TEXT ENTRY - PS5 system on-screen keyboard
+#
+# HARDWARE-VERIFIED 2026-10-30 on the PS5 global search (Home > Search icon >
+# Cross on the field). Reference frames: docs/reference/ps5-keyboard-*.png.
+# Typing "ps5" by pure grid navigation from the initial focus produced "Ps5".
+#
+# Geometry (1920x1080):
+#   * 4 character rows x 11 columns, column pitch ~75 px starting x=323,
+#     row y = 288 / 352 / 416 / 480.
+#   * Initial focus when the keyboard opens: "g" (row 2, col 4).
+#   * LEFT/RIGHT WRAP within a row (6x left from "4" landed on "9").
+#   * Below row 3 is the control strip (shift/ABC/@#:/a-grave/space/backspace,
+#     then cursor arrows / ... / Done). Do not navigate into it - every
+#     control has a face/shoulder shortcut, listed in `shortcuts`.
+#   * UP from row 0 leaves the keyboard into the search results (it does NOT
+#     wrap to the bottom). Never navigate up off row 0.
+#   * The FIRST letter of the field is auto-capitalised ("ps5" -> "Ps5").
+#     PS5 search is case-insensitive, so verify text case-insensitively.
+#   * A suggestion strip appears above row 0 after typing (R1 picks the first).
 # ---------------------------------------------------------------------------
 text_entry:
   defaults:
-    keyboard_variant: "xbox_global_search_en"
+    keyboard_variant: "ps5_system_en"
     verify_chunk_size: 2
     max_retries: 2
     reanchor_each_char: false
     move_interval: 0.3
-    key_pause: 0.2
-    recovery_pause: 0.35
+    key_pause: 0.4
+    recovery_pause: 0.5
+    case_sensitive_verify: false
 
   keyboard_layouts:
-    xbox_global_search_en:
-      description: "English keyboard for the main Xbox global search flow"
-      initial_focus: "y"
-      symbol_toggle_control: "lt"
-      # Height must stop above the "Top Results / Games / People" tab row: at
-      # 0.11 the crop caught those tabs and OCR verified against them instead
-      # of the search field.
-      search_box_region:
-        x: 0.16
-        y: 0.06
-        width: 0.68
-        height: 0.055
+    ps5_system_en:
+      description: "PS5 system keyboard (English), as opened from global search"
+      verified: true
+      open_from_search_field: "cross"     # Cross on the focused search field
+      initial_focus: "g"
+      # Auto-caps: an empty field opens on abc_shift (verified frame k02) and
+      # drops to abc after the first character. Same cell positions, so
+      # navigation is identical; only "'"/"," "." differ (see abc_shift).
+      initial_page: "abc_shift"
+      wrap_horizontal: true
+      wrap_vertical: false
+      cell_px: { x0: 323, dx: 74.6, rows_y: [288, 352, 416, 480] }
+      search_box_region:                  # fractions of the frame
+        x: 0.135
+        y: 0.105
+        width: 0.775
+        height: 0.07
       typed_text_region:
-        x: 0.16
-        y: 0.06
-        width: 0.42
-        height: 0.055
-      rows:
-        - ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-        - ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
-        - ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"]
-        - ["z", "x", "c", "v", "b", "n", "m", ",", ".", "?"]
-        - ["space", "backspace", "clear", "search"]
-      symbol_rows:
-        - ["!", "@", "#", "$", "%", "&", "(", ")", "-", "_"]
-        - ["=", "+", "\\", ";", ":", "\"", "*", "/", "", ""]
-        - ["", "", "", "", "<", ">", "[", "]", "{", "}"]
-      special_keys:
-        space: "space"
-        backspace: "backspace"
-        clear: "clear"
-        search: "search"
-
-    xbox_store_search_en:
-      description: "English keyboard for Store/app search screens"
-      initial_focus: "y"
-      symbol_toggle_control: "lt"
-      search_box_region:
-        x: 0.18
-        y: 0.08
-        width: 0.64
-        height: 0.1
-      typed_text_region:
-        x: 0.18
-        y: 0.08
+        x: 0.165
+        y: 0.11
         width: 0.40
-        height: 0.1
-      rows:
-        - ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-        - ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
-        - ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"]
-        - ["z", "x", "c", "v", "b", "n", "m", ",", ".", "?"]
-        - ["space", "backspace", "clear", "search"]
-      symbol_rows:
-        - ["!", "@", "#", "$", "%", "&", "(", ")", "-", "_"]
-        - ["=", "+", "\\", ";", ":", "\"", "*", "/", "", ""]
-        - ["", "", "", "", "<", ">", "[", "]", "{", "}"]
+        height: 0.06
+      keyboard_region:
+        x: 0.135
+        y: 0.17
+        width: 0.455
+        height: 0.415
+      pages:
+        abc:
+          rows:
+            - ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "@"]
+            - ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "#"]
+            - ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'", "/"]
+            - ["z", "x", "c", "v", "b", "n", "m", ",", ".", "?", "!"]
+        # Shown while shift (L2) is active. Row 2 col 9 and row 3 cols 7-8
+        # differ from lower case, not just in case.
+        abc_shift:
+          rows:
+            - ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "@"]
+            - ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "#"]
+            - ["A", "S", "D", "F", "G", "H", "J", "K", "L", "\"", "/"]
+            - ["Z", "X", "C", "V", "B", "N", "M", "-", "_", "?", "!"]
+        # "@#:" page. Columns 10-11 were partly off-screen/faint in the
+        # reference frame; "" marks cells not confidently read.
+        symbols:
+          rows:
+            - ["!", "?", "\"", "'", "#", "%", "(", ")", "()", "/", "\u201c", ""]
+            - ["-", "_", ",", ".", ":", ";", "*", "&", "+", "=", "\u00d7", "\u00f7"]
+            - ["<", ">", "@", "[", "]", "[]", "{", "}", "{}", "\u00a7", "\u00a6", "\u00b5"]
+            - ["\\", "|", "^", "`", "$", "\u20ac", "\u00a3", "\u00a5", "\u20a9", "\u00a2", "\u00a4", ""]
+          verified: partial
+        # R3 page (accented letters). Not needed for search; listed for
+        # completeness so an agent never mistakes it for a broken keyboard.
+        accents:
+          rows:
+            - ["\u00e0", "\u00e1", "\u00e2", "\u00e3", "\u00e4", "\u00e5", "\u0105", "\u00e6", "\u00e7", "\u0107"]
+            - ["\u00e8", "\u00e9", "\u00ea", "\u00eb", "\u0119", "\u011f", "\u00ec", "\u00ed", "\u00ee", "\u00ef"]
+            - ["\u0131", "\u0142", "\u00f1", "\u0144", "\u00f2", "\u00f3", "\u00f4", "\u00f5", "\u00f6", "\u00f8"]
+            - ["\u0153", "\u015b", "\u015f", "\u0161", "\u00df", "\u00f9", "\u00fa", "\u00fb", "\u00fc", "\u00fd"]
+            - ["\u00ff", "\u017a", "\u017c", "\u017e", "\u00f0", "\u00fe"]
+          verified: partial
+      # Controller shortcuts printed on the keyboard itself, each one tested.
+      shortcuts:
+        type_focused: "cross"
+        space: "triangle"            # VERIFIED: "Ps" -> "Ps "
+        backspace: "square"          # VERIFIED: "Ps5" -> "Ps"
+        shift: "l2"                  # VERIFIED: toggles abc <-> abc_shift
+        accents_page: "r3"           # VERIFIED: switches to `accents`
+        cursor_left: "l1"            # printed on key; not separately tested
+        cursor_right: "r1"           # printed on key; R1 also picks the first suggestion
+        more: "options"              # "..." menu
+        done: "r2"                   # printed on key; closes keyboard, keeps text
+        close_keyboard: "circle"     # VERIFIED: closes keyboard, keeps text, shows results
       special_keys:
         space: "space"
         backspace: "backspace"
-        clear: "clear"
-        search: "search"
+        done: "done"
+      # Entering the symbols page needs navigation into the control strip:
+      # from any row-3 cell press DOWN (lands on the strip), then move to
+      # "@#:" and Cross. Return with the same path to "ABC".
+      symbols_page_via_strip: true
 
 # ---------------------------------------------------------------------------
 # SPECIAL / COMPOUND ACTIONS
@@ -469,7 +514,7 @@ special_actions:
     description: "Open the PS5 Control Center (tap PS)"
     sequence:
       - { button: "ps", duration: 0.1 }
-    verified: false
+    verified: true
 
   power_menu:
     description: "Hold PS to open the power/quick menu"
@@ -477,13 +522,10 @@ special_actions:
       - { button: "ps", duration: 2.0 }
     verified: false
 
-  # NOTE: there is deliberately NO `guide_auth` equivalent here.
-  # On Xbox One a human had to HOLD GUIDE FOR 2 SECONDS to authenticate the
-  # GIMX session. On PS4/PS5 authentication is pure pass-through from a
-  # genuine DualShock 4 plugged into the PC - there is NO gesture to perform.
-  # Sending a PS press hoping to "authenticate" does nothing except open the
-  # Control Center, which then swallows the next few presses and looks exactly
-  # like a navigation bug. Do not re-add it.
+  # NOTE: there is deliberately NO auth macro here. The PS tap that arms a
+  # GIMX session must come from the HUMAN on the DS4 wired to the PC. Sending
+  # PS through GIMX only opens the Control Center, which then swallows the
+  # next presses and looks exactly like a navigation bug.
 
 # ---------------------------------------------------------------------------
 # MACROS - reusable navigation sequences
@@ -514,12 +556,30 @@ macros:
 
   open_home:
     description: >
-      Return to the PS5 home screen. Tapping PS opens the Control Center; the
-      second tap closes it back to Home. UNVERIFIED on this rig.
+      Back out to the PS5 home screen with Circle. VERIFIED from the options
+      menu, the Control Center and global search (search needs 2-3 presses).
+      Extra presses on Home are harmless.
     steps:
-      - { button: "ps", duration: 0.1 }
-      - { wait: 1.0 }
-      - { button: "ps", duration: 0.1 }
+      - { button: "circle", times: 3, interval: 0.8 }
+
+  open_search:
+    description: >
+      From Home: Triangle jumps to the Search icon, Cross opens search, Cross
+      on the focused field opens the keyboard (focus on "g", shift on).
+      VERIFIED 2026-10-30.
+    steps:
+      - { button: "triangle" }
+      - { wait: 0.8 }
+      - { button: "cross" }
+      - { wait: 2.0 }
+      - { button: "cross" }
+      - { wait: 1.5 }
+
+  submit_search:
+    description: "Close the keyboard with R2 (Done); focus lands on the first result. VERIFIED."
+    steps:
+      - { trigger: "r2" }
+      - { wait: 1.5 }
 
   nav_test:
     description: "Visible D-pad pattern to prove input reaches the console"
@@ -544,9 +604,9 @@ macros:
 # NOTES / KNOWN LIMITATIONS  (read before trusting a result)
 # ---------------------------------------------------------------------------
 notes:
-  - "Every `gimx:` name here was empirically validated against gimx.exe - but
-     against an XOnePad session. GIMX uses PlayStation wire names for all pads,
-     so they are expected to hold for DS4; this is NOT yet re-verified on PS5."
+  - "VERIFIED ON PS5 2026-10-30 by observed screen change: cross, circle,
+     square, triangle, d-pad, options, PS, l1, r1, l2, r2, r3. NOT yet
+     verified: share, l3, sticks (no visible effect on Home/keyboard)."
   - "PS5 = DualShock 4 emulation ONLY. GIMX cannot emulate a DualSense, so
      PS5-native titles will reject the adapter. Test PS4-compatible builds."
   - "PS5 authentication needs BOTH a genuine DualShock 4 wired to the PC (GIMX
@@ -556,8 +616,8 @@ notes:
      happens every event is accepted and none is delivered."
   - "VERIFIED 2026-10-30: adapter answers as DS4, firmware 8.0, baudrate
      2000000, DS4 pass-through and joystick 'PS4 Controller' registered.
-     That proves the FLASH and the AUTH CHAIN - it does NOT prove a button
-     press moves the PS5 UI. Only an observed screen change proves that."
+     Input DELIVERY is now also proven: the buttons listed above produced
+     visible PS5 UI changes on the capture card."
   - "PS5 enforces HDCP on its system UI: the capture card returns blank frames
      and every blank-check will report 'no signal' while the rig is fine.
      Disable Settings > System > HDMI > Enable HDCP."
