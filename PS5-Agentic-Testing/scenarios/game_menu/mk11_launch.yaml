@@ -1,0 +1,21 @@
+id: mk11_launch
+goal: "Launch Mortal Kombat 11 (PS4 version) from the home screen and reach its main menu"
+type: game_menu
+game: mk11
+tags: [regression, game, llm]
+setup: [{macro: home_from_game}]
+steps:
+  - id: focus_tile
+    goal: "Focus the Mortal Kombat 11 (PS4) tile on the Home game row"
+    actions: [{macro: "focus_tile:mortal_kombat_11:ps4"}]
+    expect: {screen: game_hub}
+  - id: start
+    goal: "Start the game from its hub (Play Game)"
+    actions: [{press: down}, {press: cross}, {wait: 25}]
+    expect: {text_absent: ["console storage", "friend activity"]}
+  - id: to_main_menu
+    goal: "Get from the MK11 title/dialogs/cinematics to the MK11 main menu (KONQUER / FIGHT / KUSTOMIZE / LEARN). Press cross on 'PRESS THE x BUTTON'; cross = NOT NOW on promos; if a cinematic plays press cross to skip; NEVER press r2 (store)"
+    agent: navigator
+    max_attempts: 10
+    expect: {screen: mk11_main_menu}
+limits: {max_steps: 60, timeout_s: 600}

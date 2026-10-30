@@ -1,0 +1,8 @@
+id: control_center
+description: "PS5 Control Center overlay (tap PS). Bottom card row over dimmed home."
+any_text: ["ease of use", "make your ps5", "accessible"]
+all_text: []
+none_text: []
+min_score: 0.8
+priority: 8
+transitions: {circle: home}

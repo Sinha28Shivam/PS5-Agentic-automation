@@ -1,0 +1,7 @@
+id: settings_console_info
+goal: "Open Settings and navigate to the System page, then return home without changing anything"
+type: system_ui
+tags: [regression, system, llm]
+setup: [{macro: open_home}]
+teardown: [{macro: open_home}]
+limits: {max_steps: 30}

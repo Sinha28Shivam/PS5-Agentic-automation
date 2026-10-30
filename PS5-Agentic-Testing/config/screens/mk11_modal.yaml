@@ -1,0 +1,8 @@
+id: mk11_modal
+description: "MK11 promo/info modal (e.g. LINK TO MORTAL KOMBAT MOBILE: x NOT NOW / ENTER CODE). Cross = NOT NOW."
+any_text: ["not now", "notnow", "enter code", "link to mortal kombat mobile"]
+all_text: []
+none_text: ["pause menu"]
+min_score: 0.8
+priority: 13
+dismiss: cross

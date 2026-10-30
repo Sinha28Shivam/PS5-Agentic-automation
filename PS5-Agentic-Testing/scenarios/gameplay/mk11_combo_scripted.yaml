@@ -1,0 +1,28 @@
+id: mk11_combo_scripted
+goal: "From the MK11 main menu start a CPU fight, perform the basic_pressure combo and verify the opponent loses health"
+type: gameplay_scripted
+game: mk11
+tags: [regression, gameplay]
+steps:
+  - id: to_fight_menu
+    goal: "MK11 main menu -> FIGHT -> LOCAL"
+    actions: [{press: right}, {press: cross}, {wait: 2.5}, {press: cross}, {wait: 4}]
+    expect: {}
+  - id: dialogs_to_char_select
+    goal: "Answer MK11 dialogs until the character select grid (OPPONENT TYPE) is shown: basic tutorial -> circle (NO); 'retrieving inventory' -> wait; 'unable to sync' -> cross (YES)"
+    agent: navigator
+    max_attempts: 6
+    expect: {screen: mk11_char_select}
+  - id: pick_fighters
+    goal: "Opponent CPU, pick Scorpion vs CPU, VERY EASY, first stage"
+    actions: [{press: square}, {press: cross}, {wait: 2}, {press: cross}, {wait: 2},
+              {press: cross}, {wait: 2}, {press: cross}, {wait: 2},
+              {press: left, times: 2, interval: 0.4}, {press: cross}, {wait: 3},
+              {press: cross}, {wait: 26}]
+    expect: {hud: {in_fight: true}}
+  - id: combo
+    goal: "scripted: walk in and execute basic_pressure combo against the CPU"
+    agent: gameplay
+    actions: [{press: right, duration: 0.6}, {combo: basic_pressure}, {combo: basic_pressure}]
+    expect: {hud: {in_fight: true, p2_health_drop_min: 0.02}}
+limits: {max_steps: 90, max_replans: 1}

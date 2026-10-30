@@ -1,0 +1,8 @@
+id: home_media
+description: "PS5 home, Media tab (streaming apps)."
+any_text: ["prime video", "youtube", "twitch", "spotify", "netflix", "tv & video"]
+all_text: []
+none_text: ["console storage"]
+min_score: 0.8
+priority: 5
+transitions: {l1: home}

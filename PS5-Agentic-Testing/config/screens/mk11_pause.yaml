@@ -1,0 +1,7 @@
+id: mk11_pause
+description: "MK11 in-fight pause menu with Quick Reference move list."
+any_text: ["move list", "movelist", "restart match", "fighter select", "quick reference", "paused"]
+all_text: ["pause menu"]
+none_text: []
+min_score: 0.8
+priority: 10

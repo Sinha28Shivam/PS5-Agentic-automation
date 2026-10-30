@@ -1,0 +1,7 @@
+id: game_hub
+description: "Game hub on home (Play Game button, trophies, friends who play)."
+any_text: ["play game", "trophies", "friends who play", "health / ratings"]
+all_text: []
+none_text: ["pause menu"]
+min_score: 0.8
+priority: 6

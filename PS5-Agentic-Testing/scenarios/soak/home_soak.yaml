@@ -1,0 +1,11 @@
+id: home_soak
+goal: "Soak: repeatedly navigate home tabs and Control Center while the monitor watches for freezes, blank video and DS4 loss"
+type: soak
+tags: [soak]
+setup: [{macro: open_home}]
+steps:
+  - {id: media, goal: "Media tab", actions: [{press: r1}], expect: {screen: home_media}}
+  - {id: games, goal: "Games tab", actions: [{press: l1}], expect: {screen: home}}
+  - {id: cc_open, goal: "Control Center", actions: [{press: ps}], expect: {screen: control_center}}
+  - {id: cc_close, goal: "Close", actions: [{press: circle}], expect: {screen: home}}
+limits: {soak_minutes: 3, max_steps: 400}

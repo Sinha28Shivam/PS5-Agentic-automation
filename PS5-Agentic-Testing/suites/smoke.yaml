@@ -1,0 +1,6 @@
+name: smoke
+description: "Fast system-UI checks. No LLM needed."
+scenarios:
+  - scenarios/system_ui/home_navigation.yaml
+  - scenarios/system_ui/control_center.yaml
+  - scenarios/system_ui/search_game.yaml

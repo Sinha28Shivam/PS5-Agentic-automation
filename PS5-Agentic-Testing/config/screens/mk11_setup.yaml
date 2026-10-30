@@ -1,0 +1,7 @@
+id: mk11_setup
+description: "MK11 first-boot Audio/Video settings with KONTINUE."
+any_text: ["audio settings", "video settings", "gamma"]
+all_text: ["kontinue"]
+none_text: []
+min_score: 0.8
+priority: 9

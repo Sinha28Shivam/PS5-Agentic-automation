@@ -1,0 +1,7 @@
+id: mk11_dialog
+description: "MK11 modal dialog (tutorial offer / inventory sync / retrieving)."
+any_text: ["basic tutorial", "unable to sync", "retrieving inventory", "do you still wish to continue"]
+all_text: []
+none_text: []
+min_score: 0.8
+priority: 12

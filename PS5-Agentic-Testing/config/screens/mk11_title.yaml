@@ -1,0 +1,7 @@
+id: mk11_title
+description: "MK11 title screen: PRESS THE x BUTTON."
+any_text: ["press the", "ultimate"]
+all_text: ["button"]
+none_text: ["opponent type", "scorpion"]
+min_score: 0.8
+priority: 8

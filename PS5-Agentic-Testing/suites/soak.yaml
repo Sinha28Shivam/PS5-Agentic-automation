@@ -1,0 +1,4 @@
+name: soak
+description: "Long-running stability."
+scenarios:
+  - scenarios/soak/home_soak.yaml

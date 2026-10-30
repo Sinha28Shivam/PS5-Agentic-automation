@@ -5,6 +5,13 @@ meta:
 
 llm:
   provider: "${AGENTIC_LLM_PROVIDER:anthropic}"
+  # Model per agent tier. "fast" = per-step perception/navigation/gameplay,
+  # "strong" = planning and verdict judging.
+  tiers:
+    fast: "${ANTHROPIC_FAST_MODEL:claude-haiku-4-5-20251001}"
+    strong: "${ANTHROPIC_STRONG_MODEL:claude-sonnet-4-5-20250929}"
+  # Hard cap per run so an exploratory loop can't run up a bill.
+  max_calls_per_run: "${LLM_MAX_CALLS:150}"
   providers:
     anthropic:
       module: "langchain_anthropic"

@@ -1,0 +1,10 @@
+id: controller_user_select
+description: "PS5 'Who's using this controller?' after a new GIMX session's first PS press. Cross picks the focused (logged-in) user."
+any_text: ["switch controller", "add user", "logged in"]
+all_text: ["using this controller"]
+none_text: []
+min_score: 0.8
+priority: 15
+transitions: {cross: previous}
+dismiss: cross
+

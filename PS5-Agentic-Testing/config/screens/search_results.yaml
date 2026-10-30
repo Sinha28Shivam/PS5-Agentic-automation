@@ -1,0 +1,8 @@
+id: search_results
+description: "Search results grid (keyboard closed, query entered)."
+any_text: ["go to top", "gototop", "switch tabs"]
+all_text: []
+none_text: ["trending games", "abc"]
+min_score: 0.8
+priority: 6
+transitions: {circle: home}

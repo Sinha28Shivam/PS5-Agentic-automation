@@ -1,0 +1,9 @@
+id: power_menu
+description: "PS5 Power menu (Enter Rest Mode / Turn Off / Restart). DANGER: Cross here powers the console down. Circle only."
+any_text: ["enter rest mode", "turn off ps5", "turn off pss", "restart ps5", "restart pss"]
+all_text: []
+none_text: []
+min_score: 0.8
+priority: 30
+dismiss: circle
+danger: power

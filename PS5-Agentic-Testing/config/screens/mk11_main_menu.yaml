@@ -1,0 +1,7 @@
+id: mk11_main_menu
+description: "MK11 main menu cards KONQUER / FIGHT / KUSTOMIZE / LEARN. R2 = STORE (forbidden)."
+any_text: ["konquer", "kustomize", "tournaments", "kombat kard"]
+all_text: []
+none_text: ["minecraft", "switch tabs", "console storage", "online friends", "go to top", "local", "against a human", "pause menu", "unable to sync", "basic tutorial"]
+min_score: 0.8
+priority: 8

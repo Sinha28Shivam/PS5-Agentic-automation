@@ -1,0 +1,10 @@
+id: search_keyboard
+description: "Global search with on-screen keyboard open (shift/ABC/Done strip)."
+any_text: ["abc", "done", "bone"]
+all_text: []
+none_text: ["trending games"]
+min_score: 0.8
+priority: 9
+regions:
+  typed_text: {x: 0.165, y: 0.11, width: 0.40, height: 0.06}
+transitions: {r2: search_results, circle: search_results}

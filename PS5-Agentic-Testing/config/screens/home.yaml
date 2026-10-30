@@ -1,0 +1,8 @@
+id: home
+description: "PS5 home, Games tab (tile row + widgets). Verified 2026-10-30."
+any_text: ["console storage", "online friends", "friend activity", "explore new monthly games", "game catalogue", "how to customize your layout", "new widget available"]
+all_text: []
+none_text: ["search for games", "pause menu", "system software"]
+min_score: 0.8
+priority: 5
+transitions: {triangle: home_search_icon, r1: home_media, ps: control_center}

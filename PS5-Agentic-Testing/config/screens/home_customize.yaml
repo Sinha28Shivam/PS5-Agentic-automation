@@ -1,0 +1,9 @@
+id: home_customize
+description: "Home widget customisation (Options on the widget area). Cross toggles widgets = changes the user's home layout. Circle exits."
+any_text: ["storage summary", "community activity", "check the latest deals", "recently played"]
+all_text: ["online friends", "playstation plus"]
+none_text: []
+min_score: 0.8
+priority: 14
+dismiss: circle
+danger: layout

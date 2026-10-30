@@ -1,0 +1,8 @@
+id: search
+description: "Global search screen, keyboard closed."
+any_text: ["trending games", "playstation plus and other subscriptions", "switch tabs", "use your voice to search"]
+all_text: ["search for games"]
+none_text: ["abc", "done"]
+min_score: 0.8
+priority: 7
+transitions: {cross: search_keyboard, circle: home}

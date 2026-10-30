@@ -1,0 +1,8 @@
+id: settings
+description: "PS5 Settings root list."
+any_text: ["accessibility", "network", "users and accounts", "family and parental", "screen and video", "storage"]
+all_text: []
+none_text: ["system software update", "console storage", "ease of use"]
+min_score: 0.8
+priority: 6
+transitions: {circle: home}

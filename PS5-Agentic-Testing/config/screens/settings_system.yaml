@@ -1,0 +1,8 @@
+id: settings_system
+description: "Settings > System page (System Software, Console Information, HDMI...)."
+any_text: ["system software", "console information", "hdmi", "beep and light", "power saving", "language"]
+all_text: []
+none_text: []
+min_score: 0.8
+priority: 7
+transitions: {circle: settings}

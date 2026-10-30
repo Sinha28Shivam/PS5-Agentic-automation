@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ scenario.id }} - {{ summary.verdict }}</title>
+<style>
+:root { --bg:#111418; --panel:#1b2027; --line:#2c333d; --fg:#e3e7ec; --dim:#8b95a3;
+        --pass:#2ea043; --fail:#da3633; --blocked:#d29922; --skipped:#6e7681; --pending:#6e7681; }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px; background:var(--bg); color:var(--fg);
+       font:14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+h1 { margin:0 0 4px; font-size:22px; } h2 { margin:28px 0 10px; font-size:17px; color:#c9d1d9; }
+.dim { color:var(--dim); } code, .mono { font-family:Consolas, monospace; font-size:12.5px; }
+header { display:flex; justify-content:space-between; align-items:center; gap:24px;
+         background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:18px 22px; }
+.badge { display:inline-block; padding:3px 9px; border-radius:4px; font-weight:600; font-size:12px; color:#fff; }
+.big { font-size:30px; padding:12px 30px; border-radius:8px; letter-spacing:1px; }
+.PASS { background:var(--pass); } .FAIL { background:var(--fail); } .BLOCKED { background:var(--blocked); color:#111; }
+.SKIPPED { background:var(--skipped); } .PENDING { background:var(--pending); }
+.ok { color:var(--pass); } .bad { color:var(--fail); } .warn { color:var(--blocked); }
+table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); }
+th, td { padding:7px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+th { background:#222831; color:var(--dim); font-weight:600; font-size:12px; text-transform:uppercase; }
+tr.blocked td { background:rgba(210,153,34,.08); }
+img.thumb { width:160px; border:1px solid var(--line); border-radius:4px; display:block; }
+img.mini { width:96px; border:1px solid var(--line); border-radius:3px; }
+.pair { display:flex; gap:6px; } .pair figure { margin:0; } .pair figcaption { font-size:11px; color:var(--dim); }
+.cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px 14px; }
+.card .v { font-size:20px; font-weight:600; } .card .k { color:var(--dim); font-size:12px; }
+pre.notes { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px;
+            max-height:420px; overflow:auto; white-space:pre-wrap; margin:0; }
+a { color:#58a6ff; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>{{ scenario.id }}</h1>
+    <div>{{ scenario.goal }}</div>
+    <div class="dim">type: <b>{{ scenario.type }}</b>{% if scenario.game %} &middot; game: {{ scenario.game }}{% endif %}
+      &middot; run: <code>{{ run_id }}</code> &middot; started {{ started }} &middot; duration {{ '%.1f'|format(summary.duration) }}s</div>
+    {% if scenario.tags %}<div class="dim">tags: {{ scenario.tags|join(', ') }}</div>{% endif %}
+    <div style="margin-top:8px">{{ summary.reason }}</div>
+  </div>
+  <div class="badge big {{ summary.verdict }}" id="verdict">{{ summary.verdict }}</div>
+</header>
+
+<h2>Summary</h2>
+<div class="cards">
+  <div class="card"><div class="v">{{ summary.steps.total }}</div><div class="k">steps</div></div>
+  <div class="card"><div class="v ok">{{ summary.steps.pass }}</div><div class="k">steps passed</div></div>
+  <div class="card"><div class="v bad">{{ summary.steps.fail }}</div><div class="k">steps failed</div></div>
+  <div class="card"><div class="v warn">{{ summary.steps.blocked }}</div><div class="k">steps blocked</div></div>
+  <div class="card"><div class="v">{{ summary.actions.sent }}</div><div class="k">actions sent</div></div>
+  <div class="card"><div class="v warn">{{ summary.actions.blocked }}</div><div class="k">actions blocked</div></div>
+  <div class="card"><div class="v">{{ summary.replans }} / {{ summary.recoveries }}</div><div class="k">replans / recoveries</div></div>
+</div>
+
+<h2>Health</h2>
+{% if health %}
+<table>
+  <tr><th>check</th><th>value</th></tr>
+  {% for k, v in health.items() %}
+  <tr><td>{{ k }}</td><td class="mono">{{ v|fmt }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}<div class="dim">no health data</div>{% endif %}
+
+<h2>Plan</h2>
+{% if steps %}
+<table>
+  <tr><th>id</th><th>goal</th><th>agent</th><th>verdict</th><th>reason</th><th>attempts</th><th>evidence</th></tr>
+  {% for s in steps %}
+  <tr>
+    <td class="mono">{{ s.id }}</td><td>{{ s.goal }}</td><td>{{ s.agent }}</td>
+    <td><span class="badge {{ s.verdict }}">{{ s.verdict }}</span></td>
+    <td>{{ s.reason }}</td><td>{{ s.attempts }} / {{ s.max_attempts }}</td>
+    <td>{% for e in s.evidence %}<a href="{{ e }}" target="_blank"><img class="mini" src="{{ e }}" alt="{{ e }}"></a> {% endfor %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<div class="dim">no plan</div>{% endif %}
+
+<h2>Action timeline</h2>
+{% if actions %}
+<table>
+  <tr><th>#</th><th>t+</th><th>agent</th><th>action</th><th>gate</th><th>delta</th><th>changed</th><th>before / after</th></tr>
+  {% for a in actions %}
+  <tr class="{{ '' if a.allowed else 'blocked' }}">
+    <td>{{ loop.index }}</td>
+    <td class="mono">{{ '%.1f'|format(a.offset) }}s</td>
+    <td>{{ a.agent }}</td>
+    <td class="mono">{{ a.label }}{% if a.action.reason %}<div class="dim">{{ a.action.reason }}</div>{% endif %}</td>
+    <td>{% if a.allowed %}<span class="{{ 'ok' if a.sent_ok else 'bad' }}">{{ 'sent' if a.sent_ok else 'send failed' }}</span>
+        {% else %}<span class="warn">blocked</span><div class="dim">{{ a.blocked_reason }}</div>{% endif %}</td>
+    <td class="mono">{{ '%.2f'|format(a.delta) if a.delta is not none else '-' }}</td>
+    <td>{{ a.changed|fmt }}</td>
+    <td><div class="pair">
+      {% for key, cap in [('before_frame', 'before'), ('after_frame', 'after')] %}
+      {% if a[key] %}<figure><a href="{{ a[key] }}" target="_blank"><img class="thumb" src="{{ a[key] }}" alt="{{ cap }}"></a><figcaption>{{ cap }}</figcaption></figure>{% endif %}
+      {% endfor %}
+    </div></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<div class="dim">no actions</div>{% endif %}
+
+{% if screen.frame_path %}
+<h2>Final screen</h2>
+<div class="card"><a href="{{ screen.frame_path }}" target="_blank"><img class="thumb" src="{{ screen.frame_path }}" alt="final"></a>
+  <div class="dim">{{ screen.screen_id }} ({{ '%.2f'|format(screen.confidence) }}, {{ screen.source }})</div></div>
+{% endif %}
+
+<h2>Notes</h2>
+{% if notes %}<pre class="notes">{% for n in notes %}{{ n }}
+{% endfor %}</pre>{% else %}<div class="dim">no notes</div>{% endif %}
+
+<h2>Metrics</h2>
+<div class="cards">
+  <div class="card"><div class="v">{{ llm.calls|default(0) }}</div><div class="k">LLM calls</div></div>
+  <div class="card"><div class="v">{{ llm.input_tokens|default(0) }} / {{ llm.output_tokens|default(0) }}</div><div class="k">tokens in / out</div></div>
+  <div class="card"><div class="v">{{ '%.1f'|format(llm.seconds|default(0)) }}s</div><div class="k">LLM time</div></div>
+  <div class="card"><div class="v">{{ llm.errors|default(0) }}</div><div class="k">LLM errors</div></div>
+</div>
+{% if metrics %}
+<table style="margin-top:10px">
+  <tr><th>metric</th><th>value</th></tr>
+  {% for k, v in metrics.items() %}
+  <tr><td>{{ k }}</td><td class="mono">{{ v|fmt }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+<p class="dim">generated {{ generated }}</p>
+</body>
+</html>

@@ -1,0 +1,7 @@
+id: mk11_fight_menu
+description: "MK11 FIGHT submenu: LOCAL / TOURNAMENT / ONLINE / AI BATTLE."
+any_text: ["against a human or cpu", "against a human", "local"]
+all_text: []
+none_text: ["unable to sync", "basic tutorial", "retrieving inventory"]
+min_score: 0.8
+priority: 8

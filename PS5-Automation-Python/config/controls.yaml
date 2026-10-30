@@ -129,7 +129,7 @@ connection:
   # the whole PC. These prevent a repeat.
   safety:
     nograb: true                  # never capture mouse/keyboard
-    idle_timeout_minutes: 5       # auto-exit if idle
+    idle_timeout_minutes: 30      # auto-exit if idle
     force_normal_priority: true   # never let it starve the OS
 
 # ---------------------------------------------------------------------------

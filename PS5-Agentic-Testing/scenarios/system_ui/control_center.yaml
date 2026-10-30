@@ -1,0 +1,15 @@
+id: control_center
+goal: "Open the Control Center with PS and close it with Circle"
+type: system_ui
+tags: [smoke, system]
+setup: [{macro: open_home}]
+steps:
+  - id: open_cc
+    goal: "Open the Control Center"
+    actions: [{press: ps}]
+    expect: {screen: control_center, screen_changed: true}
+  - id: close_cc
+    goal: "Close the Control Center"
+    actions: [{press: circle}]
+    expect: {screen: home, screen_changed: true}
+limits: {max_steps: 15}

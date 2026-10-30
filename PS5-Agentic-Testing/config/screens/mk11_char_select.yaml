@@ -1,0 +1,7 @@
+id: mk11_char_select
+description: "MK11 character select grid (OPPONENT TYPE toggle, CPU difficulty popup)."
+any_text: ["opponent type", "choose variation", "choose your difficulty", "scorpion", "sub-zero"]
+all_text: []
+none_text: ["pause menu", "quick reference"]
+min_score: 0.8
+priority: 7

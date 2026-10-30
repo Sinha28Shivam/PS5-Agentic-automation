@@ -1,0 +1,128 @@
+# ===========================================================================
+#  Mortal Kombat 11 Ultimate (PS4 build) - game profile
+#  Everything here was observed on the real PS5 capture on 2026-10-30.
+#  Reference frames: tests/fixtures/frames/mk11_*.jpg
+# ===========================================================================
+id: mk11
+title: "Mortal Kombat 11"
+platform_build: ps4            # the PS5 build rejects the DS4-emulating adapter
+launch:
+  # Home tile row: two MK11 tiles exist (PS5 + PS4). Navigator must pick the
+  # one whose caption shows the "PS4" badge + "Mortal Kombat 11".
+  tile_text: "mortal kombat 11"
+  tile_badge: "ps4"
+  focus_macro: "focus_tile:mortal_kombat_11:ps4"
+  start_button: "cross"        # "Play Game" is focused after `down` on the hub
+  boot_seconds: 35
+  title_prompt: "press the"    # "PRESS THE x BUTTON"
+  # First boot only: Audio then Video settings, each with a KONTINUE button
+  # at the bottom (down x3 / down x4, then cross).
+
+# Screens identified by OCR text (also mirrored to config/screens/mk11_*.yaml)
+screens:
+  mk11_title:        { any_text: ["press the", "ultimate"], all_text: ["button"] }
+  mk11_main_menu:    { any_text: ["konquer", "kustomize", "learn"], all_text: ["fight"] }
+  mk11_fight_menu:   { any_text: ["local", "tournament", "ai battle"] }
+  mk11_char_select:  { any_text: ["opponent type", "press the"], all_text: [] }
+  mk11_difficulty:   { all_text: ["choose your difficulty"] }
+  mk11_stage_select: { any_text: ["goro's lair", "stage"] }
+  mk11_pause:        { all_text: ["pause menu"], any_text: ["move list", "restart match"] }
+  mk11_dialog:       { any_text: ["yes", "no", "cancel"], all_text: [] }
+
+# Store safety: R2 on the main menu / fight menu opens the in-game STORE.
+forbidden:
+  - { screen: mk11_main_menu, buttons: [r2, l2] }   # L2 = Kombat Kard (online)
+  - { screen: mk11_fight_menu, buttons: [r2] }
+
+# Path from main menu to a CPU fight (verified):
+to_cpu_fight:
+  - { press: right }                     # KONQUER -> FIGHT
+  - { press: cross, wait_after: 3 }      # FIGHT menu, LOCAL focused
+  - { press: cross, wait_after: 3 }      # LOCAL
+  # Dialogs that may appear (dismiss by reading text):
+  #   "first time fighting ... basic tutorial?"   -> circle (NO)
+  #   "retrieving inventory"                       -> wait
+  #   "unable to sync your online inventory..."    -> cross (YES)
+  - { press: square }                    # char select: opponent type P2 -> CPU
+  - { press: cross, wait_after: 2 }      # pick P1 (Scorpion, default)
+  - { press: cross, wait_after: 2 }      # P1 variation
+  - { press: cross, wait_after: 2 }      # pick CPU (default Sub-Zero)
+  - { press: cross, wait_after: 2 }      # CPU variation
+  - { press: left, times: 2 }            # difficulty MEDIUM -> VERY EASY
+  - { press: cross, wait_after: 3 }      # stage select
+  - { press: cross, wait_after: 25 }     # stage -> intro -> fight
+
+dialogs:
+  - { text: "not now", answer: cross }          # LINK TO MORTAL KOMBAT MOBILE promo
+  - { text: "notnow", answer: cross }
+  - { text: "basic tutorial", answer: circle }
+  - { text: "unable to sync", answer: cross }
+  - { text: "retrieving inventory", answer: wait }
+
+# HUD: health bars (1920x1080 pixel coords). Gold/yellow when full; the
+# lost part turns dark. P1 drains from its LEFT edge, P2 from its RIGHT edge.
+# gap_px bridges a fighter's body briefly covering the bar (measured ~300 px).
+hud:
+  p1_health: { type: bar, x0: 46,   x1: 893,  y0: 46, y1: 54, drain: left,  gap_px: 400 }
+  p2_health: { type: bar, x0: 1026, x1: 1872, y0: 46, y1: 54, drain: right, gap_px: 400 }
+  timer_region: { x: 0.47, y: 0.03, width: 0.06, height: 0.07 }
+  # Round timer medallion: gold ring ~15% of its box with a textured number in
+  # the middle. Measured: fight 0.145-0.151 / std 60-65; cutscene 0.0;
+  # pre-fight flash 0.39 / std 11; pause 0.03; home 0.0.
+  in_fight:
+    type: presence
+    x0: 905
+    x1: 1015
+    y0: 38
+    y1: 110
+    min: 0.10
+    max: 0.25
+    center: { x0: 935, x1: 985, y0: 58, y1: 90, min_std: 30 }
+
+# Player is assumed facing RIGHT (P1 spawns left). back = left, fwd = right.
+moves:
+  front_punch:  [{ press: square }]
+  back_punch:   [{ press: triangle }]
+  front_kick:   [{ press: cross }]
+  back_kick:    [{ press: circle }]
+  block:        [{ press: r2, duration: 0.6 }]
+  jump:         [{ press: up }]
+  crouch:       [{ press: down, duration: 0.4 }]
+  walk_forward: [{ press: right, duration: 0.5 }]
+  walk_back:    [{ press: left, duration: 0.5 }]
+  # Specials, transcribed from the in-game Quick Reference (pause menu):
+  spear:        [{ press: left, duration: 0.05 }, { press: right, duration: 0.05 }, { press: square, duration: 0.08 }]
+  hell_port:    [{ press: down, duration: 0.05 }, { press: left, duration: 0.05 }, { press: cross, duration: 0.08 }]
+  # Strings
+  punch_string: [{ press: square, duration: 0.06 }, { press: triangle, duration: 0.06 }, { press: square, duration: 0.06 }]
+  kick_string:  [{ press: cross, duration: 0.06 }, { press: circle, duration: 0.06 }]
+
+combos:
+  basic_pressure:
+    - punch_string
+    - kick_string
+    - punch_string
+  spear_punish:
+    - spear
+    - punch_string
+
+# Exploratory policy action space (names from `moves`).
+action_space: [front_punch, back_punch, front_kick, back_kick, block, jump,
+               crouch, walk_forward, walk_back, spear, punch_string, kick_string]
+
+pause:
+  open: options
+  resume: circle
+  menu_items: ["move list", "variations", "controls", "restart match", "fighter select", "main menu"]
+quit_to_home:
+  - { press: ps }
+  - { wait: 1 }
+  # Control Center is up; closing the game itself is not needed between tests.
+recover:
+  - { press: options }        # pause if in fight
+  - { press: circle }
+
+# Round over: MK11 resets/refills health bars for the next round while the
+# "<FIGHTER> WINS" banner shows (mk11_round_over.jpg: P1 bar 0.61 right after a
+# FLAWLESS loss), so bars alone cannot detect it. The gameplay agent asks the
+# vision LLM (situation.round_over) and the Monitor watches in_fight transitions.

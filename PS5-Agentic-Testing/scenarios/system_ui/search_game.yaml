@@ -1,0 +1,13 @@
+id: search_game
+goal: "Search for Mortal Kombat using the on-screen keyboard and see it in the results"
+type: system_ui
+tags: [smoke, system, keyboard]
+setup: [{macro: open_home}]
+hints:
+  - {macro: open_search}
+  - {type: "mortal kombat"}
+  - {macro: submit_search}
+expect:
+  - {screen: search_results, text_contains: ["mortal kombat"]}
+teardown: [{macro: open_home}]
+limits: {max_steps: 30}

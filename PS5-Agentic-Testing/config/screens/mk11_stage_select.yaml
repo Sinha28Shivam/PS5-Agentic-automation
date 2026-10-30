@@ -1,0 +1,7 @@
+id: mk11_stage_select
+description: "MK11 stage select strip."
+any_text: ["goro's lair", "lair", "kronika", "sea of blood", "shang tsung"]
+all_text: []
+none_text: ["pause menu"]
+min_score: 0.8
+priority: 7

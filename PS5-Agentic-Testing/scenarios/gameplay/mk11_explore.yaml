@@ -1,0 +1,11 @@
+id: mk11_explore
+goal: "Fight the CPU in MK11 autonomously for 60 seconds, choosing moves from what is on screen"
+type: gameplay_explore
+game: mk11
+tags: [gameplay, explore, llm]
+steps:
+  - id: explore
+    goal: "Play the fight autonomously"
+    agent: gameplay
+    expect: {hud: {in_fight: true}}
+limits: {max_steps: 200, explore_seconds: 60, require_in_fight: true}

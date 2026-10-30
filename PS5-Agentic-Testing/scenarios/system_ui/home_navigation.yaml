@@ -1,0 +1,15 @@
+id: home_navigation
+goal: "From the PS5 home screen switch to the Media tab and back to the Games tab"
+type: system_ui
+tags: [smoke, system]
+setup: [{macro: open_home}]
+steps:
+  - id: to_media
+    goal: "Switch to the Media tab"
+    actions: [{press: r1}]
+    expect: {screen: home_media, screen_changed: true}
+  - id: to_games
+    goal: "Switch back to the Games tab"
+    actions: [{press: l1}]
+    expect: {screen: home, screen_changed: true}
+limits: {max_steps: 15}
