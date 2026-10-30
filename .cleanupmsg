@@ -1,0 +1,43 @@
+chore(ps5): remove dead code left by the Xbox wipe
+
+Removed 41 files that are provably dead, not merely unused-looking:
+
+  * temp_code_test/agentic/ (26) - every script imported the deleted Xbox
+    agent layer (from core.config, from tools.registry, from agents.base,
+    from gameplay.autonomous_player) so none could even import. Included
+    minecraft_launch_sequence_test.py, smoke_test.py, layout_trace.py,
+    keyboard_regression_guard.py, type_text_live.py, phase2_* and the
+    Xbox run-inspection helpers.
+  * temp_code_test/docs/ (2) - verify_docs.py validated the deleted docs/.
+  * __pycache__ (10) - regenerated on demand; stale handles here also block
+    directory renames on Windows.
+  * wipe_xbox.ps1, backup_rig_tools.ps1, .commitmsg - one-shot migration
+    helpers, already executed.
+
+Fixed stale references in surviving files:
+
+  * .pre-commit-config.yaml - pointed ruff and check-yaml at
+    PS5-Agentic-Testing; dropped the mypy hook until the new layer has
+    core/ and agents/ packages.
+  * ps5_game_bindings_check.py - was reporting "every game binding
+    resolves" while silently checking ZERO bindings, because both game
+    configs it named had been deleted. It now discovers *_controls.yaml
+    under the PS5 layer and says plainly when there is nothing to check.
+    A green result that verifies nothing is the exact failure this project
+    exists to avoid.
+  * gimx_session_selftest.py - crashed on profiles with config_file: null
+    (ps3, xbox_360). That ValueError is the session guard working as
+    designed, so it is now reported as "refused by design".
+  * temp_code_test/README.md - rewritten for the PS5 tooling; indexes every
+    surviving script and the findings documents.
+
+Kept deliberately: temp_code_test/hardware (PS5 rig tooling, all verified
+working) and temp_code_test/artifacts (proof frames).
+
+Verified after cleanup:
+  ps5_profile_check.py        PASS (26 checks)
+  gimx_session_selftest.py    PASS
+  test_controller_selftest.py PASS
+  capture_warmup_test.py      PASS
+  ps5_game_bindings_check.py  honest "nothing to check"
+  validate_config.py          25/26 - only the pending folder rename fails

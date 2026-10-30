@@ -1,0 +1,586 @@
+# ============================================================================
+#  controls.yaml - GLOBAL controller configuration
+#  Single source of truth for every button, stick, trigger, timing and macro.
+#  Used by test-controller and (later) the agentic test framework.
+# ============================================================================
+#
+#  IMPORTANT - the `gimx` values below are NOT guesses. Every name was tested
+#  against gimx.exe and only names it ACCEPTS are used here. Notably:
+#     * "guide"  is REJECTED by GIMX -> the PS/Guide button is "PS"
+#     * "LB/RB/LT/RT" are REJECTED   -> use l1/r1/l2/r2
+#     * "lstick right/up" are REJECTED -> sticks are AXES: lstick x / lstick y
+#     * "menu/view/back/share/options/touchpad/sync/home/xbox/gas/brake"
+#       are all REJECTED -> Options = "start", Share/Create = "select"
+#  GIMX internally uses PlayStation naming for EVERY pad, so this layer needed
+#  no translation when this rig moved from Xbox One to PS5: "cross", "circle",
+#  "l1", "PS" were already the wire names. Only the CANONICAL names and
+#  aliases changed to stop callers thinking in Xbox terms.
+#
+#  Value semantics:
+#     buttons : 1 = pressed, 0 = released
+#     triggers: 0..32767 analog (l2/r2). 32767 = fully pressed.
+#               HARDWARE-VERIFIED: on XOnePad the trigger axis uses the SAME
+#               wide range as the sticks, NOT 0..255. r2(255) is only ~0.8% of
+#               a full pull - gimx.exe ACCEPTS it, but the console sees an
+#               almost-unpressed trigger and games ignore it. Measured on Max:
+#               The Curse of Brotherhood, watching the RT tutorial prompt:
+#                 r2(255)/r2(512) -> prompt ROI delta 0.2-0.3  (no effect)
+#                 r2(1023)        -> delta 65.9  (magic marker OPENS)
+#                 r2(32767)       -> delta 66.3  (magic marker OPENS)
+#               Activation threshold sits between 512 and 1023.
+#     sticks  : XOnePad axes use -32768..32767. 0 = centered
+# ============================================================================
+
+meta:
+  version: 1
+  description: "Global control map and timing profile for console automation"
+  verified_against: "GIMX 8.0 / EMUXONE firmware / XOnePad"
+
+# ---------------------------------------------------------------------------
+# CONSOLE PROFILES
+# Adding a new console = add a profile here + flash matching firmware with
+#   flash_leonardo.ps1 -Firmware <FIRMWARE>
+# ---------------------------------------------------------------------------
+#
+#  AUTHENTICATION DIFFERS PER FAMILY - this is not a detail:
+#     Xbox One : a genuine MS pad passes auth through AND a human must HOLD
+#                THE GUIDE BUTTON FOR 2 SECONDS.
+#     PS4/PS5  : a genuine DualShock 4 passes auth through, and GIMX DOES
+#                still print "Press the key/button assigned to PS." at
+#                startup - OBSERVED on this rig 2026-10-30. So a human button
+#                press IS required to arm the session, same as Xbox. What
+#                differs is only WHICH button and that it is a TAP of PS
+#                rather than a 2-second hold of Guide.
+#                (An earlier revision of this file claimed no gesture was
+#                needed on PlayStation. That was WRONG - GIMX asks for PS.)
+# ---------------------------------------------------------------------------
+consoles:
+  # ---- PlayStation 5 ------------------------------------------------------
+  # GIMX CANNOT emulate a DualSense. The only path to a PS5 is to present a
+  # DualShock 4, which the PS5 accepts for BACKWARD-COMPATIBLE PS4 TITLES ONLY.
+  # PS5-native games reject it: they require the DualSense.
+  #
+  #   * auth device  : a genuine DualShock 4 wired to the PC (NOT an Xbox pad).
+  #   * known limit  : auth can drop after ~8 minutes with some original DS4
+  #                    units, which kills long runs mid-scenario.
+  #   * HDCP         : the PS5 encrypts its system UI over HDMI. The capture
+  #                    card then returns BLANK frames and every blank-check in
+  #                    this repo will honestly report "no signal" while the
+  #                    rig is perfectly fine. Disable
+  #                    Settings > System > HDMI > Enable HDCP.
+  #
+  # HARDWARE-VERIFIED 2026-10-30 (adapter + auth only; input not yet proven):
+  #   GIMX adapter detected, controller type is: DS4.
+  #   Firmware version: 8.0
+  #   Using baudrate: 2000000 bps.
+  #   found pass-through device 0x054c:0x09cc
+  #   registered joystick 0 with name "PS4 Controller"
+  ps5:
+    gimx_type: "DS4"              # --type value (DualSense is NOT supported)
+    firmware: "EMUPS4"            # .hex used by flash_leonardo.ps1
+    config_file: "Dualshock4.xml" # %APPDATA%\gimx\config\Dualshock4.xml
+    auth_device: "dualshock4"     # what has to be plugged into the PC
+    # GIMX prompts "Press the key/button assigned to PS." - a TAP on the real
+    # DS4, not a 2-second hold. Until that press happens the session accepts
+    # every event and delivers none, exactly like an unauthenticated Xbox one.
+    auth_gesture: "tap_ps"
+    notes: "PS4-compatible titles only. DualSense/PS5-native titles reject DS4."
+    default: true
+
+  ps4:
+    gimx_type: "DS4"
+    firmware: "EMUPS4"
+    config_file: "Dualshock4.xml"
+    auth_device: "dualshock4"
+    auth_gesture: "tap_ps"
+    default: false
+
+  xbox_one:
+    gimx_type: "XOnePad"          # --type value
+    firmware: "EMUXONE"           # .hex used by flash_leonardo.ps1
+    config_file: "XOnePadUsb.xml" # GIMX launcher config (--config)
+    auth_device: "xbox_one_pad"
+    auth_gesture: "hold_guide_2s" # REQUIRED on Xbox, meaningless on PS
+    default: false
+
+  ps3:
+    gimx_type: "Sixaxis"
+    firmware: "EMUPS3"
+    config_file: null
+    auth_device: null
+    auth_gesture: null
+    default: false
+
+  xbox_360:
+    gimx_type: "360Pad"
+    firmware: "EMU360"
+    config_file: null
+    auth_device: null
+    auth_gesture: null
+    default: false
+
+# ---------------------------------------------------------------------------
+#  *** config_file IS NOT OPTIONAL ***
+#  Without --config, GIMX starts, prints "adapter detected", accepts every
+#  event and forwards NOTHING - not even a physical controller. That failure
+#  is completely silent and is the single most expensive mistake in this
+#  project's history (docs/07-lessons-learned.md).
+#
+#  The ps5/ps4 profiles above therefore CANNOT SEND INPUT YET. Create a DS4
+#  launcher config in the GIMX GUI, save it (it lands in the GIMX config dir),
+#  and put its filename in config_file. Until then gimx_session.py will refuse
+#  to start these profiles rather than bring up a silently-dead session.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# CONNECTION
+# ---------------------------------------------------------------------------
+connection:
+  gimx_exe: "C:\\Program Files\\GIMX\\gimx.exe"
+  serial_port: "COM8"             # FTDI UART -> Leonardo
+  udp_address: "127.0.0.1"
+  udp_port: 51914
+  # Safety flags for any GIMX session we launch ourselves.
+  # An elevated GIMX once took REALTIME priority and grabbed input, freezing
+  # the whole PC. These prevent a repeat.
+  safety:
+    nograb: true                  # never capture mouse/keyboard
+    idle_timeout_minutes: 5       # auto-exit if idle
+    force_normal_priority: true   # never let it starve the OS
+
+# ---------------------------------------------------------------------------
+# CAPTURE (video input for the perception / verification layer)
+#
+# HARDWARE-VERIFIED: a 1920x1080 frame of the real Xbox screen was captured
+# and visually confirmed by the user.
+#
+#   * The card is a STANDARD UVC device - no vendor SDK needed.
+#   * RECentral 4 is NOT required and must be CLOSED while automating:
+#     only one application can open a capture device at a time. RECentral
+#     holding it produced "Could not run graph (device already in use)".
+#   * Indices SHIFT. They are positional, and plugging in a USB camera or
+#     docking the laptop reorders them.
+#
+#     CONFIRMED 2026-08-14: the indices swapped. The card moved to 0 and the
+#     HP HD Camera took 1. The framework dutifully read the webcam - 1280x720,
+#     std 1.5 - and reported "black screen / no HDMI signal" while the Xbox was
+#     sitting on index 0 at 1920x1080, std 35.8.
+#
+#     That is a nasty failure: a webcam in a dim room is a *plausible* capture
+#     device. It opens, it returns frames, and those frames are dark, so every
+#     naive check agrees the console must be off.
+#
+#     Fix: capture.py now resolves the device BY NAME via ffmpeg and only falls
+#     back to opencv_index if the name cannot be found. Run
+#     `python temp_code_test/agentic/diagnose_capture.py` to see every device
+#     with a saved frame from each.
+# ---------------------------------------------------------------------------
+capture:
+  device_name: "AVerMedia ExtremeCap UVC"   # ffmpeg dshow name (stable)
+  usb_id: "VID_07CA&PID_0110"
+
+  # Match device_name against the ffmpeg device list at open() time. Keep this
+  # true: the name is stable, the index is not. Set false only to force the
+  # literal opencv_index below (useful when two identical cards are attached).
+  auto_detect_device: true
+
+  # Fallback only, used when the name cannot be matched. Was 1; the card is
+  # currently enumerating at 0. Do not rely on this value - it moves.
+  opencv_index: 0
+  width: 1920
+  height: 1080
+  fps: 30                         # card supports up to 60
+  fourcc: "MJPG"
+  backend: "opencv"               # 'opencv' (fast) or 'ffmpeg' (robust)
+
+  # Measured on this machine, 2026-08-12:
+  #   OpenCV : ~726 ms first frame (device open), then ~1 ms per frame
+  #   ffmpeg : ~0.7 s per grab (new process each time)
+  # => keep ONE OpenCV handle open for the agent loop; use ffmpeg for one-offs.
+  # SYNC BEHAVIOUR (measured) - important, and easy to misdiagnose.
+  # After the device is opened, the first ~2 reads come back PERFECTLY FLAT
+  # (std 0.00) while the card locks onto the HDMI signal. Real content arrives
+  # at ~1.05 s. Grabbing immediately therefore looks EXACTLY like "no HDMI
+  # signal" even though the console is on and everything is fine.
+  # capture.py polls until a non-blank frame appears rather than trusting a
+  # fixed frame count.
+  warmup_frames: 3                # reads discarded outright
+  sync_timeout: 5.0               # then poll this long for real content
+
+  # Blank-frame detection. A flat image means no signal / HDCP / wrong input.
+  # Real console content measured std ~49 with 255 tones; a blank frame was
+  # std 0.0 with 1 tone, so this threshold has a wide margin.
+  blank_std_threshold: 1.0
+
+  conflicting_apps: ["RECentral 4", "OBS", "Teams", "Camera", "Zoom"]
+
+# ---------------------------------------------------------------------------
+# BUTTONS  (digital: 1 = press, 0 = release)
+#   name -> gimx control name + friendly aliases
+# ---------------------------------------------------------------------------
+#
+#  NAMING: canonical names are now PlayStation names. The Xbox names are kept
+#  as ALIASES so every existing scenario, route and test that says "a" or
+#  "guide" keeps working - they resolve to cross / PS exactly as before.
+#  New work should prefer the PlayStation names.
+#
+#  PS5 FACE-BUTTON WARNING: on PlayStation, CROSS confirms and CIRCLE cancels
+#  in most regions - the same positions as Xbox A/B - so "a"->cross and
+#  "b"->circle stay semantically correct. But Japanese-region systems and some
+#  titles SWAP them (circle confirms). If confirms start cancelling, this is
+#  the first place to look.
+# ---------------------------------------------------------------------------
+buttons:
+  # ---- Face buttons -------------------------------------------------------
+  cross:
+    gimx: "cross"
+    aliases: ["a", "confirm", "select_item"]
+    description: "Cross button - confirm/select (Xbox A position)"
+  circle:
+    gimx: "circle"
+    aliases: ["b", "cancel", "back_action"]
+    description: "Circle button - cancel/back (Xbox B position)"
+  square:
+    gimx: "square"
+    aliases: ["x"]
+    description: "Square button (Xbox X position)"
+  triangle:
+    gimx: "triangle"
+    aliases: ["y"]
+    description: "Triangle button (Xbox Y position)"
+
+  # ---- D-pad --------------------------------------------------------------
+  up:
+    gimx: "up"
+    aliases: ["u", "dpad_up"]
+    description: "D-pad up"
+  down:
+    gimx: "down"
+    aliases: ["d", "dpad_down"]
+    description: "D-pad down"
+  left:
+    gimx: "left"
+    aliases: ["l", "dpad_left"]
+    description: "D-pad left"
+  right:
+    gimx: "right"
+    aliases: ["r", "dpad_right"]
+    description: "D-pad right"
+
+  # ---- System buttons -----------------------------------------------------
+  options:
+    gimx: "start"
+    aliases: ["menu", "start", "hamburger", "pause"]
+    description: "Options button (DS4) - GIMX calls it 'start'"
+  share:
+    gimx: "select"
+    aliases: ["view", "select", "back", "create", "windows"]
+    description: >
+      Share button (DS4) / Create (DualSense) - GIMX calls it 'select'.
+      This is the Xbox View position.
+  ps:
+    gimx: "PS"
+    aliases: ["guide", "xbox", "home", "playstation", "dashboard"]
+    description: >
+      PS (PlayStation logo) button. GIMX name is 'PS' ('guide' is REJECTED).
+      Opens the PS5 Control Center; HOLD opens the power menu. NOTE: unlike
+      Xbox, this button is NOT part of session authentication.
+
+  # ---- Shoulder buttons ---------------------------------------------------
+  l1:
+    gimx: "l1"
+    aliases: ["lb", "left_bumper"]
+    description: "L1 shoulder button (Xbox LB position)"
+  r1:
+    gimx: "r1"
+    aliases: ["rb", "right_bumper"]
+    description: "R1 shoulder button (Xbox RB position)"
+
+  # ---- Stick clicks -------------------------------------------------------
+  l3:
+    gimx: "l3"
+    aliases: ["ls", "left_stick_click", "lsb"]
+    description: "Left stick press (click)"
+  r3:
+    gimx: "r3"
+    aliases: ["rs", "right_stick_click", "rsb"]
+    description: "Right stick press (click)"
+
+# ---------------------------------------------------------------------------
+# TRIGGERS  (analog 0..255)
+# ---------------------------------------------------------------------------
+triggers:
+  l2:
+    gimx: "l2"
+    aliases: ["lt", "left_trigger"]
+    min: 0
+    max: 32767
+    default_press: 32767          # value used for a normal "press"
+    description: "L2 trigger (analog, Xbox LT position)"
+  r2:
+    gimx: "r2"
+    aliases: ["rt", "right_trigger"]
+    min: 0
+    max: 32767
+    default_press: 32767
+    description: "R2 trigger (analog, Xbox RT position)"
+
+# ---------------------------------------------------------------------------
+# STICKS (analog axes)
+#   GIMX exposes sticks as AXES, not directions. Directional names like
+#   "lstick right" are REJECTED, so directions are expressed as axis+value.
+# ---------------------------------------------------------------------------
+sticks:
+  left_stick:
+    x_axis: "lstick x"
+    y_axis: "lstick y"
+    min: -32768
+    max: 32767
+    center: 0
+    deadzone: 10
+    directions:                   # convenience: name -> (axis, value)
+      left:  { axis: "lstick x", value: -32768 }
+      right: { axis: "lstick x", value: 32767 }
+      up:    { axis: "lstick y", value: -32768 }
+      down:  { axis: "lstick y", value: 32767 }
+    description: "Left analog stick - movement"
+
+  right_stick:
+    x_axis: "rstick x"
+    y_axis: "rstick y"
+    min: -32768
+    max: 32767
+    center: 0
+    deadzone: 10
+    directions:
+      left:  { axis: "rstick x", value: -32768 }
+      right: { axis: "rstick x", value: 32767 }
+      up:    { axis: "rstick y", value: -32768 }
+      down:  { axis: "rstick y", value: 32767 }
+    description: "Right analog stick - camera/look"
+
+# ---------------------------------------------------------------------------
+# TIMING  (all values in SECONDS)
+# Tune these centrally instead of hunting for sleeps in code.
+# ---------------------------------------------------------------------------
+timing:
+  tap_duration: 0.08              # normal quick press
+  press_duration: 0.15            # standard press
+  long_press_duration: 1.0        # "deep"/long press
+  deep_press_duration: 2.0        # e.g. guide button power menu
+  gap_between_presses: 0.25       # pause after each press
+  gap_between_sequences: 0.5      # pause between macro steps
+
+  menu_transition_wait: 1.0       # let a menu animate in
+  screen_load_wait: 3.0           # page/blade change
+  game_launch_wait: 30.0          # cold game start (varies wildly by title)
+  console_boot_wait: 60.0
+
+  session_settle: 4.0             # after starting GIMX before first event
+  udp_retry_delay: 1.5
+  udp_max_retries: 6
+
+# ---------------------------------------------------------------------------
+# TEXT ENTRY
+# Search-box typing uses a hybrid model:
+#   * static keyboard geometry for deterministic navigation
+#   * OCR on the search field as the guardrail
+# These defaults target reliable Xbox search typing first. If your on-screen
+# keyboard differs, adjust the layout rows / regions here rather than changing
+# code.
+# ---------------------------------------------------------------------------
+text_entry:
+  defaults:
+    keyboard_variant: "xbox_global_search_en"
+    verify_chunk_size: 2
+    max_retries: 2
+    reanchor_each_char: false
+    move_interval: 0.3
+    key_pause: 0.2
+    recovery_pause: 0.35
+
+  keyboard_layouts:
+    xbox_global_search_en:
+      description: "English keyboard for the main Xbox global search flow"
+      initial_focus: "y"
+      symbol_toggle_control: "lt"
+      # Height must stop above the "Top Results / Games / People" tab row: at
+      # 0.11 the crop caught those tabs and OCR verified against them instead
+      # of the search field.
+      search_box_region:
+        x: 0.16
+        y: 0.06
+        width: 0.68
+        height: 0.055
+      typed_text_region:
+        x: 0.16
+        y: 0.06
+        width: 0.42
+        height: 0.055
+      rows:
+        - ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+        - ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
+        - ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"]
+        - ["z", "x", "c", "v", "b", "n", "m", ",", ".", "?"]
+        - ["space", "backspace", "clear", "search"]
+      symbol_rows:
+        - ["!", "@", "#", "$", "%", "&", "(", ")", "-", "_"]
+        - ["=", "+", "\\", ";", ":", "\"", "*", "/", "", ""]
+        - ["", "", "", "", "<", ">", "[", "]", "{", "}"]
+      special_keys:
+        space: "space"
+        backspace: "backspace"
+        clear: "clear"
+        search: "search"
+
+    xbox_store_search_en:
+      description: "English keyboard for Store/app search screens"
+      initial_focus: "y"
+      symbol_toggle_control: "lt"
+      search_box_region:
+        x: 0.18
+        y: 0.08
+        width: 0.64
+        height: 0.1
+      typed_text_region:
+        x: 0.18
+        y: 0.08
+        width: 0.40
+        height: 0.1
+      rows:
+        - ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+        - ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
+        - ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"]
+        - ["z", "x", "c", "v", "b", "n", "m", ",", ".", "?"]
+        - ["space", "backspace", "clear", "search"]
+      symbol_rows:
+        - ["!", "@", "#", "$", "%", "&", "(", ")", "-", "_"]
+        - ["=", "+", "\\", ";", ":", "\"", "*", "/", "", ""]
+        - ["", "", "", "", "<", ">", "[", "]", "{", "}"]
+      special_keys:
+        space: "space"
+        backspace: "backspace"
+        clear: "clear"
+        search: "search"
+
+# ---------------------------------------------------------------------------
+# SPECIAL / COMPOUND ACTIONS
+# Multi-step or timing-dependent operations.
+# ---------------------------------------------------------------------------
+special_actions:
+  screenshot:
+    description: "PS5 screenshot: tap Create/Share"
+    sequence:
+      - { button: "share", duration: 0.1 }
+    verified: false               # NOT yet confirmed on hardware
+
+  record_clip:
+    description: "PS5 recent-gameplay clip: hold Create/Share, then confirm"
+    sequence:
+      - { button: "share", duration: 1.0 }
+      - { wait: 1.0 }
+      - { button: "square", duration: 0.1 }
+    verified: false
+
+  control_center:
+    description: "Open the PS5 Control Center (tap PS)"
+    sequence:
+      - { button: "ps", duration: 0.1 }
+    verified: false
+
+  power_menu:
+    description: "Hold PS to open the power/quick menu"
+    sequence:
+      - { button: "ps", duration: 2.0 }
+    verified: false
+
+  # NOTE: there is deliberately NO `guide_auth` equivalent here.
+  # On Xbox One a human had to HOLD GUIDE FOR 2 SECONDS to authenticate the
+  # GIMX session. On PS4/PS5 authentication is pure pass-through from a
+  # genuine DualShock 4 plugged into the PC - there is NO gesture to perform.
+  # Sending a PS press hoping to "authenticate" does nothing except open the
+  # Control Center, which then swallows the next few presses and looks exactly
+  # like a navigation bug. Do not re-add it.
+
+# ---------------------------------------------------------------------------
+# MACROS - reusable navigation sequences
+#
+# Step keys:
+#   button   : name from `buttons` (or an alias)
+#   times    : repeat the button N times     (e.g. move down 3 rows)
+#   interval : extra pause BETWEEN repeats, seconds. Animated menus can drop
+#              presses that arrive too fast - raise this if steps get eaten.
+#   duration : how long the button is held for each press
+#   wait     : pause, seconds (used on its own)
+#   trigger / value, stick / direction|x|y are also supported
+#   strength : 0.0..1.0 stick deflection for named stick directions
+#
+# Example:  - { button: down, times: 3, interval: 0.4 }
+# Example:  - { stick: left_stick, direction: left, duration: 0.5, strength: 0.2 }
+# ---------------------------------------------------------------------------
+macros:
+  confirm:
+    description: "Confirm current selection"
+    steps:
+      - { button: "cross" }
+
+  go_back:
+    description: "Back out one level"
+    steps:
+      - { button: "circle" }
+
+  open_home:
+    description: >
+      Return to the PS5 home screen. Tapping PS opens the Control Center; the
+      second tap closes it back to Home. UNVERIFIED on this rig.
+    steps:
+      - { button: "ps", duration: 0.1 }
+      - { wait: 1.0 }
+      - { button: "ps", duration: 0.1 }
+
+  nav_test:
+    description: "Visible D-pad pattern to prove input reaches the console"
+    steps:
+      - { button: "right", times: 2, interval: 0.8 }
+      - { wait: 0.8 }
+      - { button: "left",  times: 2, interval: 0.8 }
+      - { wait: 0.8 }
+      - { button: "down" }
+      - { wait: 0.8 }
+      - { button: "up" }
+
+  repeat_demo:
+    description: "Example of repeats: down x3, right x2, then confirm"
+    steps:
+      - { button: "down",  times: 3, interval: 0.3 }
+      - { button: "right", times: 2, interval: 0.3 }
+      - { wait: 0.5 }
+      - { button: "cross" }
+
+# ---------------------------------------------------------------------------
+# NOTES / KNOWN LIMITATIONS  (read before trusting a result)
+# ---------------------------------------------------------------------------
+notes:
+  - "Every `gimx:` name here was empirically validated against gimx.exe - but
+     against an XOnePad session. GIMX uses PlayStation wire names for all pads,
+     so they are expected to hold for DS4; this is NOT yet re-verified on PS5."
+  - "PS5 = DualShock 4 emulation ONLY. GIMX cannot emulate a DualSense, so
+     PS5-native titles will reject the adapter. Test PS4-compatible builds."
+  - "PS5 authentication needs BOTH a genuine DualShock 4 wired to the PC (GIMX
+     logs 'found pass-through device 0x054c:0x09cc') AND a human TAP of the PS
+     button when GIMX prints 'Press the key/button assigned to PS.' It is a tap,
+     not the 2-second hold Xbox needs - but it is NOT optional. Until it
+     happens every event is accepted and none is delivered."
+  - "VERIFIED 2026-10-30: adapter answers as DS4, firmware 8.0, baudrate
+     2000000, DS4 pass-through and joystick 'PS4 Controller' registered.
+     That proves the FLASH and the AUTH CHAIN - it does NOT prove a button
+     press moves the PS5 UI. Only an observed screen change proves that."
+  - "PS5 enforces HDCP on its system UI: the capture card returns blank frames
+     and every blank-check will report 'no signal' while the rig is fine.
+     Disable Settings > System > HDMI > Enable HDCP."
+  - "Sending an event successfully does NOT prove the console reacted. Real
+     verification needs the capture card + perception layer."
+  - "special_actions with `verified: false` are best-guess sequences that have
+     NOT been confirmed on hardware yet."
+  - "Each press currently spawns a gimx.exe process (~250ms). Fine for menus,
+     too slow for frame-accurate input."

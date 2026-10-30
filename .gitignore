@@ -1,0 +1,81 @@
+# ===========================================================================
+#  .gitignore
+#
+#  The rule of thumb here: commit anything a human wrote or that describes how
+#  the rig behaves; ignore anything a RUN produced. Test artifacts are large,
+#  binary and specific to one moment in front of one console - they belong in
+#  the run folder, not in history.
+# ===========================================================================
+
+# --- secrets ---------------------------------------------------------------
+# .env.example IS committed (it documents the variables); real keys never are.
+*.env
+.env
+TEMP.env
+!.env.example
+
+# --- run artifacts ---------------------------------------------------------
+# Every agentic run writes frames, logs and reports here. Screenshots of the
+# Xbox dashboard are ~2MB each and a single run produces a dozen - committing
+# them would bloat the repo permanently for evidence that is only meaningful
+# alongside the run that produced it.
+Xbox-Agentic-Testing/artifacts/
+Xbox-Agentic-Testing/**/checkpoints.sqlite
+
+# Scratch output from ad-hoc runs (redirected console output, etc.)
+_live.txt
+_lastrun.txt
+
+# --- captured frames -------------------------------------------------------
+# Screenshots are ignored everywhere EXCEPT docs/, where a handful are
+# deliberately committed as reference images for the written guides.
+*.png
+!docs/**/*.png
+
+Xbox-Automation-Python/capture/_probe_frames/
+Xbox-Automation-Python/capture/_warmup_first_good.png
+
+# --- temporary / experimental ----------------------------------------------
+TEMP_*
+TEMP_agent_run/
+
+# NOTE: standalone rigs live in Xbox-Agentic-Testing/scripts/ and small
+# inspection helpers in scripts/dev/ - both ARE committed on purpose.
+
+# --- python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- editors / OS ----------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# --- model caches ----------------------------------------------------------
+# PaddleOCR downloads ~200MB of models on first use.
+.paddleocr/
+paddleocr_models/
+.env
+# --- test / coverage output ---------------------------------------------------
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- local scratch output (probe frames, ad-hoc logs) ----------------------------
+# Reusable scripts live in Xbox-Agentic-Testing/dev/; scratch/ is for their output.
+Xbox-Agentic-Testing/scratch/

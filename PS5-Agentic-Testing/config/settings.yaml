@@ -1,0 +1,116 @@
+meta:
+  version: 1
+  description: "PS5 multi-agent console testing runtime settings"
+  console: ps5
+
+llm:
+  provider: "${AGENTIC_LLM_PROVIDER:anthropic}"
+  providers:
+    anthropic:
+      module: "langchain_anthropic"
+      class: "ChatAnthropic"
+      api_key_env: "ANTHROPIC_API_KEY"
+      params:
+        model: "${ANTHROPIC_MODEL:claude-haiku-4-5-20251001}"
+        temperature: 0
+        max_tokens: "${ANTHROPIC_MAX_TOKENS:32000}"
+      supports_vision: true
+    openai:
+      module: "langchain_openai"
+      class: "ChatOpenAI"
+      api_key_env: "OPENAI_API_KEY"
+      params:
+        model: "${OPENAI_MODEL:gpt-4o}"
+        temperature: 0
+      supports_vision: true
+    google:
+      module: "langchain_google_genai"
+      class: "ChatGoogleGenerativeAI"
+      api_key_env: "GOOGLE_API_KEY"
+      params:
+        model: "${GOOGLE_MODEL:gemini-2.0-flash}"
+        temperature: 0
+      supports_vision: true
+
+# ---------------------------------------------------------------------------
+# PATHS - point at the PS5 hardware layer.
+# ---------------------------------------------------------------------------
+paths:
+  automation_root: "${AUTOMATION_ROOT:../PS5-Automation-Python}"
+  controls_config: "${CONTROLS_CONFIG:../PS5-Automation-Python/config/controls.yaml}"
+  scenarios_dir: "${SCENARIOS_DIR:./scenarios}"
+  prompts_dir: "${PROMPTS_DIR:./config/prompts}"
+  artifacts_dir: "${ARTIFACTS_DIR:./artifacts}"
+  reports_dir: "${REPORTS_DIR:./artifacts/reports}"
+
+# ---------------------------------------------------------------------------
+# ADAPTERS - the hardware modules this layer imports. It contains NO hardware
+# code of its own; everything physical lives in PS5-Automation-Python.
+# ---------------------------------------------------------------------------
+adapters:
+  gimx:
+    file: "gimx-session/gimx_session.py"
+    module_name: "gimx_session"
+    exports: ["GimxSession", "session_is_up", "running_gimx_pids", "stop_all"]
+  pad:
+    file: "test-controller/test_controller.py"
+    module_name: "test_controller"
+    exports: ["ConsolePad", "ControlConfig"]
+  capture:
+    file: "capture/capture.py"
+    module_name: "capture"
+    exports: ["ScreenCapture", "preflight", "frame_stats", "is_blank", "difference"]
+
+# ---------------------------------------------------------------------------
+# CONSOLE - PS5 specifics the agents must respect.
+# ---------------------------------------------------------------------------
+console:
+  profile: "ps5"                  # selects the ps5 block in controls.yaml
+  # GIMX emulates a DualShock 4; a DualSense cannot be emulated at all, so
+  # PS5-native titles will reject the adapter. Only PS4-compatible builds work.
+  emulated_controller: "DS4"
+  ps4_titles_only: true
+  # A genuine DS4 must be wired to the PC BEFORE the session starts, and a
+  # human must TAP PS when GIMX asks. Until then every event is accepted and
+  # none delivered - so health must treat this as unproven, never as ok.
+  auth:
+    device: "dualshock4"
+    gesture: "tap_ps"
+    requires_human: true
+  # The PS5 encrypts its system UI over HDMI. With HDCP on, capture returns
+  # blank frames and every check honestly reports "no signal".
+  requires_hdcp_disabled: true
+
+runtime:
+  execution_mode: "${EXECUTION_MODE:scenario}"
+  max_steps: "${MAX_STEPS:40}"
+  max_replans: "${MAX_REPLANS:1}"
+  step_timeout_seconds: 60
+  run_timeout_seconds: "${RUN_TIMEOUT:3600}"
+  recursion_limit: 150
+  dry_run: "${DRY_RUN:false}"
+  # Non-negotiable: a run with no visual evidence is BLOCKED, never PASS.
+  require_visual_evidence: true
+  stop_on_health_failure: true
+  save_frames: true
+  frame_format: "png"
+  dead_input_streak: 3
+
+verification:
+  screen_change_threshold: 0.5
+  stability_timeout: 10.0
+  stability_settle: 0.4
+  blank_std_threshold: 1.0
+  # Measured on this rig: the capture card returns ~2 flat frames while it
+  # locks onto HDMI and real content arrives at ~1.05 s. Any check shorter
+  # than that reports "no signal" on a perfectly working card.
+  capture_sync_timeout: 5.0
+  ocr:
+    enabled: "${OCR_ENABLED:true}"
+    engines: ["pytesseract"]
+    min_confidence: 0.4
+
+logging:
+  level: "${LOG_LEVEL:INFO}"
+  rich_console: true
+  log_file: "${LOG_FILE:./artifacts/agentic.log}"

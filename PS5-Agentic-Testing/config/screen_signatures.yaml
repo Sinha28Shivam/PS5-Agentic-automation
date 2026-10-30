@@ -1,0 +1,57 @@
+# ===========================================================================
+#  screen_signatures.yaml - text that identifies a PS5 screen.
+#
+#  Used by the executor's safety guard: before sending gameplay input it reads
+#  the screen and refuses to "blind tap" if the console is somewhere dangerous
+#  (a store page, an account prompt) or somewhere that cannot react (home).
+#
+#  EVERY ENTRY HERE IS A PLACEHOLDER UNTIL CONFIRMED FROM A REAL FRAME.
+#  The Xbox version of this file keyed on "my games & apps" / "buy $" /
+#  "join game pass". Those never appear on a PS5, so the guard silently
+#  stopped guarding. Do not guess strings: capture a frame, run OCR, paste
+#  what the console actually printed, then mark it verified.
+#
+#  Capture a frame with:
+#    python PS5-Automation-Python/capture/capture.py grab --out frame.png
+# ===========================================================================
+
+meta:
+  version: 1
+  console: ps5
+  verified: false          # flip to true only when every list below is checked
+
+# Phrases that unambiguously mean "this is a purchase screen".
+# Must be exact: a price or a buy prompt must never be guessed at.
+store:
+  # CONFIRMED from a real 1080p capture of the PS5 home screen (2026-10-30):
+  - "playstation store"
+  # UNVERIFIED - expected PS5 store wording, pending a real frame:
+  # - "add to cart"
+  # - "purchase"
+  # - "join playstation plus"
+
+# Account / entitlement dialogs that block gameplay.
+account_prompt: []
+  # UNVERIFIED, pending real frames. Likely candidates:
+  # - "cannot be used"
+  # - "sign in to playstation network"
+  # - "you do not have a licence"
+
+# How to treat an account prompt: "warn" keeps going, "block" stops.
+account_prompt_policy:
+  - "block"
+
+# The PS5 home screen. Input here is navigation, never gameplay.
+# CONFIRMED from the 2026-10-30 capture: these strings were visibly present.
+home:
+  - "games"
+  - "media"
+  - "console storage"
+  - "recently played"
+  - "friend activity"
+  - "game catalogue"
+
+# Text proving a game is actually running. Empty until a title is under test -
+# without an entry the guard treats a running game as the home screen and
+# aborts, so this must be filled in per game.
+in_game: []
