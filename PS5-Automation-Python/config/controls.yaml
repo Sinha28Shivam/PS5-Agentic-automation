@@ -34,7 +34,7 @@
 meta:
   version: 1
   description: "Global control map and timing profile for console automation"
-  verified_against: "GIMX 8.0 / EMUXONE firmware / XOnePad"
+  verified_against: "GIMX 8.0 / EMUPS4 firmware / DS4"
 
 # ---------------------------------------------------------------------------
 # CONSOLE PROFILES
@@ -95,25 +95,9 @@ consoles:
     auth_gesture: "tap_ps"
     default: false
 
-  xbox_one:
-    gimx_type: "XOnePad"          # --type value
-    firmware: "EMUXONE"           # .hex used by flash_leonardo.ps1
-    config_file: "XOnePadUsb.xml" # GIMX launcher config (--config)
-    auth_device: "xbox_one_pad"
-    auth_gesture: "hold_guide_2s" # REQUIRED on Xbox, meaningless on PS
-    default: false
-
   ps3:
     gimx_type: "Sixaxis"
     firmware: "EMUPS3"
-    config_file: null
-    auth_device: null
-    auth_gesture: null
-    default: false
-
-  xbox_360:
-    gimx_type: "360Pad"
-    firmware: "EMU360"
     config_file: null
     auth_device: null
     auth_gesture: null
@@ -151,8 +135,8 @@ connection:
 # ---------------------------------------------------------------------------
 # CAPTURE (video input for the perception / verification layer)
 #
-# HARDWARE-VERIFIED: a 1920x1080 frame of the real Xbox screen was captured
-# and visually confirmed by the user.
+# HARDWARE-VERIFIED: a 1920x1080 frame of the real PS5 home screen was
+# captured 2026-10-30 (docs/hardware/reference/ps5-home-1080p.png).
 #
 #   * The card is a STANDARD UVC device - no vendor SDK needed.
 #   * RECentral 4 is NOT required and must be CLOSED while automating:
@@ -172,8 +156,8 @@ connection:
 #
 #     Fix: capture.py now resolves the device BY NAME via ffmpeg and only falls
 #     back to opencv_index if the name cannot be found. Run
-#     `python temp_code_test/agentic/diagnose_capture.py` to see every device
-#     with a saved frame from each.
+#     `powershell -File tools\rig\capture_diagnose.ps1` or
+#     `python tools/rig/capture_probe.py` to see every device.
 # ---------------------------------------------------------------------------
 capture:
   device_name: "AVerMedia ExtremeCap UVC"   # ffmpeg dshow name (stable)

@@ -16,8 +16,8 @@ Executed 2026-10-30. Scope chosen: **agentic only**.
 
 | Path | Why |
 |---|---|
-| `Xbox-Automation-Python/` → `PS5-Automation-Python/` | **Hardware-verified on PS5 today.** The folder name was Xbox; the code is not. |
-| `temp_code_test/hardware/` | PS5 rig tooling: flasher, probes, capture diagnostics, input proof |
+| `PS5-Automation-Python/` → `PS5-Automation-Python/` | **Hardware-verified on PS5 today.** The folder name was Xbox; the code is not. |
+| `tools/rig/` | PS5 rig tooling: flasher, probes, capture diagnostics, input proof |
 
 The hardware layer is already PlayStation-native:
 `controls.yaml` has `ps5`/`ps4` profiles (`gimx_type: DS4`, `firmware:
@@ -37,24 +37,22 @@ PlayStation button names with Xbox names kept only as aliases, and no
    from git entirely, so the rig tooling and the proof frames were **not** in
    the backup commit.
 
-## Outstanding: the folder rename
+## Repo reorganisation (2026-10-30, done)
 
-`Xbox-Automation-Python` could not be renamed because an **elevated
-`gimx.exe` (PID 24884)** holds a handle inside it:
+| Before | After |
+|---|---|
+| `Xbox-Automation-Python/` | `PS5-Automation-Python/` (rename complete; `rename_hw.ps1` deleted) |
+| `temp_code_test/hardware/*.ps1, *.py` (gitignored) | `tools/rig/` (committed) |
+| `temp_code_test/hardware/*.md` | `docs/hardware/` |
+| `temp_code_test/artifacts/capture-check/framework-grab.png` | `docs/hardware/reference/ps5-home-1080p.png` |
+| other `temp_code_test/artifacts/*.png` | deleted (copies in `PS5-RIG-TOOLS-BACKUP`) |
+| empty `.github/workflows/` | deleted |
 
-```
-fatal: renaming 'Xbox-Automation-Python' failed: Permission denied
-```
-
-A non-elevated process cannot stop an elevated one. Close PID 24884 from an
-**admin** Task Manager, then:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File rename_hw.ps1
-```
-
-That session is also stale and unauthenticated (it was started while the DS4
-was off the PC), so stopping it loses nothing.
+Also: `xbox_one` / `xbox_360` profiles dropped from `controls.yaml`; the
+flasher now defaults to `EMUPS4`; the GIMX auth banner says *tap PS* and
+`gimx_session.py` now recognises the DS4 prompt
+`Press the key/button assigned to PS.`. Rig scripts write output to
+`artifacts/rig/` (gitignored).
 
 > Do not run GIMX as administrator. Elevated it claims REALTIME priority and
 > grabs input devices — that froze a PC during this project's development.
@@ -94,16 +92,15 @@ comment saying to capture a frame rather than guess.
 
 ## Next steps, in order
 
-1. Close the elevated `gimx.exe`; run `rename_hw.ps1`.
-2. Re-verify the hardware layer still works after the rename:
+1. Re-verify the hardware layer after the rename:
    ```powershell
-   powershell -File temp_code_test\hardware\manual_check.ps1
-   cd PS5-Automation-Python && python capture\capture.py preflight
+   powershell -File tools\rig\manual_check.ps1
+   cd PS5-Automation-Python; python capture\capture.py preflight
    ```
-3. Reconnect the DS4 **by cable**, start a session, **tap PS**, then get the
+2. Reconnect the DS4 **by cable**, start a session, **tap PS**, then get the
    first full PASS:
    ```bash
-   python temp_code_test/hardware/prove_input_reaches_ps5.py
+   python tools/rig/prove_input_reaches_ps5.py
    ```
-4. Only then build agents — and derive every screen signature and keyboard
+3. Only then build agents — and derive every screen signature and keyboard
    layout from real captured PS5 frames.

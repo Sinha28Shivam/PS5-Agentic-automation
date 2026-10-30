@@ -6,11 +6,11 @@
 # script polls rapidly and fires avrdude the moment the port shows up.
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File .\flash-leonardo.ps1
-#   powershell -ExecutionPolicy Bypass -File .\flash-leonardo.ps1 -Firmware EMUPS4 -TimeoutSeconds 120
+#   powershell -ExecutionPolicy Bypass -File .\flash_leonardo.ps1
+#   powershell -ExecutionPolicy Bypass -File .\flash_leonardo.ps1 -Firmware EMUPS4 -TimeoutSeconds 120
 
 param(
-    [string]$Firmware       = "EMUXONE",
+    [string]$Firmware       = "EMUPS4",   # PS4/PS5 (DS4). Must match controls.yaml consoles.ps5.firmware
     [string]$GimxDir        = "C:\Program Files\GIMX",
     [int]$TimeoutSeconds    = 90,
     [string]$ForcePort      = ""    # e.g. "COM9" to skip auto-detection

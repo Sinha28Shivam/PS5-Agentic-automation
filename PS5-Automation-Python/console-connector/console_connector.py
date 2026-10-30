@@ -109,7 +109,7 @@ def main():
         print("  1. TX/RX not crossed: FTDI TX -> Leonardo RX(D0),")
         print("     FTDI RX -> Leonardo TX(D1), and GND <-> GND.")
         print("  2. GND not shared between the FTDI and the Leonardo.")
-        print("  3. The EMUXONE firmware only accepts data from gimx.exe's own")
+        print("  3. The GIMX firmware (EMUPS4) only accepts data from gimx.exe's own")
         print("     handshake, or expects a different UART speed.")
         print("  4. The Leonardo needs to be powered/enumerated by the console.")
         loopback_hint(args.port)

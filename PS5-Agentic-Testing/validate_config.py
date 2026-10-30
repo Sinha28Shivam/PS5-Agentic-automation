@@ -68,14 +68,9 @@ for bad in ("my games & apps", "join game pass", "buy $", "sponsored"):
 
 print("\n-- hardware layer reachable --")
 hw = REPO / "PS5-Automation-Python"
-legacy = REPO / "Xbox-Automation-Python"
-if hw.is_dir():
-    check("PS5-Automation-Python exists", True)
-elif legacy.is_dir():
-    check("PS5-Automation-Python exists", False,
-          "still named Xbox-Automation-Python - run rename_hw.ps1")
-else:
-    check("hardware layer exists", False, "neither name found")
+check("PS5-Automation-Python exists", hw.is_dir())
+check("legacy Xbox-Automation-Python is gone",
+      not (REPO / "Xbox-Automation-Python").exists())
 
 print()
 if failures:

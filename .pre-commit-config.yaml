@@ -8,15 +8,14 @@ repos:
         entry: ruff check --force-exclude
         language: system
         types: [python]
-        files: ^PS5-Agentic-Testing/
-        args: ["--config", "PS5-Agentic-Testing/pyproject.toml"]
+        files: ^(PS5-Agentic-Testing|PS5-Automation-Python|tools)/
       # mypy hook removed with the Xbox agent layer. Re-add it once
       # PS5-Agentic-Testing has core/ and agents/ packages and a pyproject.
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: check-yaml
-        files: ^PS5-Agentic-Testing/(config|scenarios)/
+        files: ^(PS5-Agentic-Testing/(config|scenarios)|PS5-Automation-Python/config)/
       - id: check-merge-conflict
       - id: detect-private-key
       - id: check-added-large-files

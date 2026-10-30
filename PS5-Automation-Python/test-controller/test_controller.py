@@ -44,7 +44,7 @@ PREREQUISITES
 This script only SENDS input. Starting the GIMX session is a separate job,
 handled by  gimx-session/gimx_session.py  - run that first, in its own terminal:
 
-    python ../gimx-session/gimx_session.py start     # then hold GUIDE 2s
+    python ../gimx-session/gimx_session.py start     # then TAP PS on the wired DS4
 
 Then check from here:
 
@@ -567,7 +567,7 @@ def check_session(pad: ConsolePad) -> bool:
 
     if ok:
         print("  Reminder: reachable is NOT the same as authenticated. If the")
-        print("  Guide button was never held for 2s, events report 'ok' but")
+        print("  PS button on the wired DS4 was never tapped, events report 'ok' but")
         print("  never reach the console.")
     else:
         print("  Start one with:")

@@ -2,7 +2,7 @@
 gimx_session.py - Start, check and stop the GIMX session.
 
 This is the ONE place that owns the GIMX server process, the serial port, and
-the Guide-button authentication step. Everything else (test_controller.py, the
+the PS-button authentication step. Everything else (test_controller.py, the
 future agentic framework) just sends events to a session started here.
 
 WHY THIS IS A SEPARATE FILE
@@ -10,7 +10,7 @@ WHY THIS IS A SEPARATE FILE
 Starting a session is a different kind of job from sending button presses:
 
   * It holds COM8 for as long as it runs (only ONE process can).
-  * It needs a human to hold the controller's GUIDE button for 2 seconds.
+  * It needs a human to TAP the PS button on the DualShock 4 wired to the PC.
   * It is long-lived, whereas sending a press is instant and stateless.
 
 Mixing those two concerns made the earlier code confusing, so the session lives
@@ -72,7 +72,8 @@ DEFAULT_CONFIG_PATH = (Path(__file__).resolve().parent.parent
 
 # Lines GIMX prints that we care about.
 RE_ADAPTER = re.compile(r"adapter detected", re.I)
-RE_GUIDE = re.compile(r"guide button", re.I)
+# DS4 sessions print "Press the key/button assigned to PS."
+RE_GUIDE = re.compile(r"guide button|button assigned to PS", re.I)
 RE_FIRMWARE = re.compile(r"Firmware version:\s*(\S+)", re.I)
 RE_BAUD = re.compile(r"Using baudrate:\s*(\d+)", re.I)
 RE_ERROR = re.compile(r"^\s*Error:|failed", re.I)
@@ -133,8 +134,8 @@ def session_is_up(config_path: Path | str = DEFAULT_CONFIG_PATH,
     """True if a GIMX server is running and reachable over UDP.
 
     NOTE: this proves the server is *reachable*. It does NOT prove the session
-    was authenticated (Xbox: hold Guide 2s; PS4/PS5: a genuine DualShock 4 must
-    be wired to the PC), and it does NOT prove input actually reaches the
+    was authenticated (PS4/PS5: a genuine DualShock 4 wired to the PC and a
+    human TAP of PS), and it does NOT prove input actually reaches the
     console. Only watching the TV proves that.
     """
     cfg = load_config(config_path)
@@ -388,8 +389,12 @@ class GimxSession:
 
     def _print_auth_banner(self) -> None:
         print("=" * 66)
-        print("  ACTION REQUIRED:  hold the controller's GUIDE button")
-        print("                    (the Xbox logo) for 2 SECONDS")
+        if self.auth_gesture == "tap_ps":
+            print("  ACTION REQUIRED:  TAP the PS button on the DualShock 4")
+            print("                    wired to this PC")
+        else:
+            print(f"  ACTION REQUIRED:  perform auth gesture "
+                  f"'{self.auth_gesture}' on the physical controller")
         print()
         print("  Without this the session is NOT authenticated. Events will")
         print("  be accepted and report 'ok' while NOTHING reaches the")
@@ -459,7 +464,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     if up:
         print()
         print("Reachable. Remember this does NOT prove the session was")
-        print("authenticated (Guide button) or that input reaches the console.")
+        print("authenticated (PS button tap) or that input reaches the console.")
         print("Only watching the TV proves that.")
     return 0 if up else 1
 
@@ -477,7 +482,7 @@ def cmd_restart(args: argparse.Namespace) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Start / check / stop the GIMX session "
-                    "(owns the serial port + Guide-button auth).")
+                    "(owns the serial port + PS-button auth).")
     ap.add_argument("--config", default=str(DEFAULT_CONFIG_PATH),
                     help="path to controls.yaml")
     ap.add_argument("--console", default=None,
@@ -489,7 +494,7 @@ def main() -> int:
                     help="with 'start': don't tail the log, just leave it running")
 
     sub = ap.add_subparsers(dest="command")
-    sub.add_parser("start", help="start a session (then hold GUIDE 2s)")
+    sub.add_parser("start", help="start a session (then TAP PS on the DS4)")
     sub.add_parser("status", help="is a session running and reachable?")
     sub.add_parser("stop", help="stop any running gimx.exe")
     sub.add_parser("restart", help="stop then start")
