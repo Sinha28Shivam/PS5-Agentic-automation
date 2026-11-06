@@ -104,3 +104,10 @@ def ask(prompt: str, *, system: str = "", frames: list[np.ndarray] | None = None
 def snapshot_metrics() -> dict[str, Any]:
     with _lock:
         return dict(METRICS)
+
+
+def reset_metrics() -> None:
+    """Zero the counters. Called at the start of every run so tokens and the
+    call budget are per-run, not cumulative across a suite/soak."""
+    with _lock:
+        METRICS.update(calls=0, input_tokens=0, output_tokens=0, seconds=0.0, errors=0)

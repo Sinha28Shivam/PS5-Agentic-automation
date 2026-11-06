@@ -19,6 +19,7 @@ PS5-Agentic-Testing/scratch/
 PS5-Agentic-Testing/**/checkpoints.sqlite
 _live.txt
 _lastrun.txt
+AGENTS.md
 
 # --- captured frames -------------------------------------------------------
 # Ignored everywhere EXCEPT docs/, where reference frames are committed on purpose.

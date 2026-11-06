@@ -21,7 +21,8 @@ PC ──USB──> FTDI ──UART──> Leonardo (EMUPS4) ──USB──> PS
 ## Quick start
 
 ```powershell
-pip install -r PS5-Automation-Python\requirements.txt
+pip install -r PS5-Automation-Python\requirements.txt   # hardware layer only
+pip install -r PS5-Agentic-Testing\requirements.txt     # + agentic layer (needs both)
 python PS5-Agentic-Testing\validate_config.py          # offline config checks
 cd PS5-Automation-Python
 python tests\ps5_profile_check.py                       # offline profile checks

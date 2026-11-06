@@ -55,7 +55,7 @@ def cmd_run(a: argparse.Namespace) -> int:
                       setup=[{"macro": "open_home"}] if a.type == "system_ui" else [])
     else:
         sc = load_scenario(a.scenario)
-    rig = make_rig(a.dry_run)
+    rig = make_rig(a.dry_run, a.frames)
     try:
         st = run_scenario(sc, rig)
     finally:
@@ -69,7 +69,7 @@ def cmd_suite(a: argparse.Namespace) -> int:
     from .reporting.suite_report import write_suite_report
     suite = yaml.safe_load((PKG_ROOT / a.suite if not Path(a.suite).is_absolute()
                             else Path(a.suite)).read_text(encoding="utf-8"))
-    rig = make_rig(a.dry_run)
+    rig = make_rig(a.dry_run, a.frames)
     results = []
     try:
         for path in suite["scenarios"]:
@@ -81,7 +81,8 @@ def cmd_suite(a: argparse.Namespace) -> int:
             _print_result(st)
             results.append({"scenario_id": sc.id, "verdict": st.verdict.value,
                             "reason": st.verdict_reason, "run_dir": st.run_dir,
-                            "duration": round(time.time() - t0, 1)})
+                            "duration": round(time.time() - t0, 1),
+                            "llm": st.metrics.get("llm", {})})
     finally:
         rig.close()
     out = get_settings().reports_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-{suite['name']}"
@@ -99,7 +100,7 @@ def cmd_soak(a: argparse.Namespace) -> int:
     from .reporting.suite_report import write_suite_report
     sc = load_scenario(a.scenario)
     minutes = a.minutes or float(sc.limits.get("soak_minutes", 5))
-    rig = make_rig(a.dry_run)
+    rig = make_rig(a.dry_run, a.frames)
     lock = threading.Lock()
     events: list[dict[str, Any]] = []
     orig_grab = rig.grab
@@ -126,7 +127,8 @@ def cmd_soak(a: argparse.Namespace) -> int:
             print(f"  iteration {i}: {st.verdict.value} {st.verdict_reason[:80]}")
             results.append({"scenario_id": f"{sc.id}-{i:03d}", "verdict": st.verdict.value,
                             "reason": st.verdict_reason, "run_dir": st.run_dir,
-                            "duration": round(time.time() - t0, 1)})
+                            "duration": round(time.time() - t0, 1),
+                            "llm": st.metrics.get("llm", {})})
             if st.verdict == Verdict.BLOCKED and "dead" in st.verdict_reason:
                 break
     finally:
@@ -150,7 +152,7 @@ def cmd_explore(a: argparse.Namespace) -> int:
                           "expect": {"hud": {"in_fight": True}}}],
                   limits={"explore_seconds": a.seconds, "max_steps": 400,
                           "skip_input_probe": True})
-    rig = make_rig(a.dry_run)
+    rig = make_rig(a.dry_run, a.frames)
     try:
         st = run_scenario(sc, rig)
     finally:
@@ -162,7 +164,7 @@ def cmd_explore(a: argparse.Namespace) -> int:
 
 def cmd_screens(a: argparse.Namespace) -> int:
     from .perception.perceive import Perception
-    rig = make_rig(a.dry_run)
+    rig = make_rig(a.dry_run, a.frames)
     try:
         f = rig.grab()
         st = Perception().observe(f, use_vision="always" if a.vision else "never")
@@ -189,6 +191,8 @@ def cmd_graph(a: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="ps5agent", description="Multi-agent PS5 test runner")
     ap.add_argument("--dry-run", action="store_true", help="replay fixture frames, no hardware")
+    ap.add_argument("--frames", default=None,
+                    help="with --dry-run: folder of frames replayed in name order (one per action)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("scenario", nargs="?")
     r.add_argument("--goal"); r.add_argument("--id"); r.add_argument("--game")

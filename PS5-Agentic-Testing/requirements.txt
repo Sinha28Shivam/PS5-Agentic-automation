@@ -1,0 +1,12 @@
+# Agentic layer (ps5agent). Install together with ../PS5-Automation-Python/requirements.txt.
+# Tesseract OCR must also be installed on the system (tesseract.exe on PATH).
+pyyaml
+numpy
+opencv-python
+pydantic>=2
+jinja2
+pytesseract
+anthropic
+langgraph
+langgraph-checkpoint-sqlite
+pytest

@@ -11,6 +11,18 @@ from pathlib import Path
 from typing import Any
 
 COLORS = {'PASS': '#2ea043', 'FAIL': '#da3633', 'BLOCKED': '#d29922', 'SKIPPED': '#6e7681'}
+LLM_KEYS = ('calls', 'input_tokens', 'output_tokens', 'errors')
+
+
+def _llm(raw: Any) -> dict[str, int]:
+    raw = raw if isinstance(raw, dict) else {}
+    out: dict[str, int] = {}
+    for k in LLM_KEYS:
+        try:
+            out[k] = int(raw.get(k) or 0)
+        except (TypeError, ValueError):
+            out[k] = 0
+    return out
 
 
 def _rel(path: str | None, base: Path) -> str | None:
@@ -30,7 +42,7 @@ def _norm(r: dict[str, Any], out: Path) -> dict[str, Any]:
         report = _rel(str(Path(run_dir) / 'report.html'), out)
     return {'scenario_id': str(r.get('scenario_id', '?')), 'verdict': verdict,
             'reason': str(r.get('reason') or ''), 'run_dir': str(run_dir) if run_dir else None,
-            'report': report, 'duration': float(r.get('duration') or 0.0)}
+            'report': report, 'duration': float(r.get('duration') or 0.0), 'llm': _llm(r.get('llm'))}
 
 
 def _junit(suite_name: str, rows: list[dict[str, Any]], counts: dict[str, int], total_time: float) -> ET.Element:
@@ -54,14 +66,17 @@ def _junit(suite_name: str, rows: list[dict[str, Any]], counts: dict[str, int], 
     return root
 
 
-def _html(suite_name: str, rows: list[dict[str, Any]], counts: dict[str, int], total_time: float) -> str:
+def _html(suite_name: str, rows: list[dict[str, Any]], counts: dict[str, int], total_time: float,
+          llm_total: dict[str, int]) -> str:
     e = html.escape
     body = []
     for r in rows:
         color = COLORS.get(r['verdict'], '#6e7681')
         link = f"<a href=\"{e(r['report'])}\">report</a>" if r['report'] else '-'
+        t = r['llm']
         body.append(f"<tr><td>{e(r['scenario_id'])}</td><td><span class=\"b\" style=\"background:{color}\">"
-                    f"{e(r['verdict'])}</span></td><td>{e(r['reason'])}</td><td>{r['duration']:.1f}s</td><td>{link}</td></tr>")
+                    f"{e(r['verdict'])}</span></td><td>{e(r['reason'])}</td><td>{r['duration']:.1f}s</td>"
+                    f"<td>{t['calls']}</td><td>{t['input_tokens']} / {t['output_tokens']}</td><td>{link}</td></tr>")
     overall = 'PASS' if rows and counts['PASS'] == len(rows) - counts['SKIPPED'] else ('FAIL' if counts['FAIL'] else 'BLOCKED')
     chips = ' '.join(f"<span class=\"b\" style=\"background:{COLORS.get(k, '#6e7681')}\">{k} {counts[k]}</span>"
                      for k in ('PASS', 'FAIL', 'BLOCKED', 'SKIPPED'))
@@ -76,8 +91,9 @@ th {{ background:#222831; color:#8b95a3; font-size:12px; text-transform:uppercas
 a {{ color:#58a6ff; }} .dim {{ color:#8b95a3; }}
 </style></head><body>
 <h1>{e(suite_name)} <span class="b" style="background:{COLORS[overall]};font-size:18px">{overall}</span></h1>
-<div>{chips} <span class="dim">&middot; {len(rows)} scenarios &middot; {total_time:.1f}s</span></div>
-<table><tr><th>scenario</th><th>verdict</th><th>reason</th><th>duration</th><th>report</th></tr>
+<div>{chips} <span class="dim">&middot; {len(rows)} scenarios &middot; {total_time:.1f}s
+&middot; LLM {llm_total['calls']} calls &middot; tokens in/out {llm_total['input_tokens']} / {llm_total['output_tokens']}</span></div>
+<table><tr><th>scenario</th><th>verdict</th><th>reason</th><th>duration</th><th>llm calls</th><th>tokens in / out</th><th>report</th></tr>
 {chr(10).join(body)}
 </table>
 <p class="dim">generated {time.strftime('%Y-%m-%d %H:%M:%S')}</p>
@@ -86,7 +102,7 @@ a {{ color:#58a6ff; }} .dim {{ color:#8b95a3; }}
 
 
 def write_suite_report(suite_name: str, results: list[dict[str, Any]], out_dir: Path | str) -> dict[str, str]:
-    '''results: [{scenario_id, verdict, reason, run_dir, duration}]. Returns paths of suite.json/html, junit.xml.'''
+    '''results: [{scenario_id, verdict, reason, run_dir, duration, llm?}]. Returns paths of suite.json/html, junit.xml.'''
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     rows = [_norm(r, out) for r in results]
@@ -94,12 +110,13 @@ def write_suite_report(suite_name: str, results: list[dict[str, Any]], out_dir: 
     for r in rows:
         counts[r['verdict'] if r['verdict'] in counts else 'OTHER'] += 1
     total_time = sum(r['duration'] for r in rows)
+    llm_total = {k: sum(r['llm'][k] for r in rows) for k in LLM_KEYS}
     paths = {'suite_json': str(out / 'suite.json'), 'suite_html': str(out / 'suite.html'),
              'junit_xml': str(out / 'junit.xml')}
     summary = {'suite': suite_name, 'generated': time.time(), 'total': len(rows), 'duration': total_time,
-               'counts': counts, 'results': rows}
+               'counts': counts, 'llm': llm_total, 'results': rows}
     Path(paths['suite_json']).write_text(json.dumps(summary, indent=2), encoding='utf-8')
-    Path(paths['suite_html']).write_text(_html(suite_name, rows, counts, total_time), encoding='utf-8')
+    Path(paths['suite_html']).write_text(_html(suite_name, rows, counts, total_time, llm_total), encoding='utf-8')
     tree = ET.ElementTree(_junit(suite_name, rows, counts, total_time))
     ET.indent(tree)
     tree.write(paths['junit_xml'], encoding='utf-8', xml_declaration=True)

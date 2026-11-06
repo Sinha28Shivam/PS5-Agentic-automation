@@ -66,7 +66,7 @@ def build_graph(ctx: Ctx, settings: Settings | None = None, checkpointer: Any = 
             reason = ""
             if time.time() - state.started > timeout:
                 reason = f"run timeout {timeout:.0f}s"
-            elif llm.snapshot_metrics()["calls"] > max_calls:
+            elif llm.snapshot_metrics()["calls"] >= max_calls:
                 reason = f"LLM budget exceeded ({max_calls} calls)"
             if reason:
                 upd["next_agent"] = "reporter"
@@ -109,6 +109,7 @@ def run_scenario(scenario: Scenario, rig: Any, settings: Settings | None = None,
     run_id, run_dir = new_run_dir(scenario, s)
     ev = Evidence(run_dir)
     ctx = Ctx.build(rig, ev, scenario, s)
+    llm.reset_metrics()
     ev.log("run_start", run_id=run_id, scenario=scenario.id, type=scenario.type)
     _run_actions(ctx, scenario.setup, "setup")
     saver = None
@@ -129,7 +130,9 @@ def run_scenario(scenario: Scenario, rig: Any, settings: Settings | None = None,
         snap = graph.get_state(cfg).values if saver else {}
         final = RunState.model_validate(snap) if snap else init
         final = final.model_copy(update={"verdict": Verdict.BLOCKED,
-                                         "verdict_reason": f"runner crashed: {exc!r}"})
+                                         "verdict_reason": f"runner crashed: {exc!r}",
+                                         "metrics": {**final.metrics,
+                                                     "llm": llm.snapshot_metrics()}})
         from ..reporting.report import write_report
         write_report(final, run_dir)
     _run_actions(ctx, scenario.teardown, "teardown")
