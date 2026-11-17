@@ -457,7 +457,7 @@ def test_gameplay_explore_llm_stops_on_round_over(tmp_path: Path, monkeypatch: p
                {'action': 'punch', 'situation': {'round_over': True}}]
     monkeypatch.setattr(llm, 'ask', lambda *a, **k: replies.pop(0))
     sc = Scenario(id='g', goal='fight', type='gameplay_explore', limits={'explore_ticks': 10})
-    state, ctx, rig = make(tmp_path, sc, profile=PROFILE)
+    state, ctx, rig = make(tmp_path, sc, profile={**PROFILE, 'stop_on': ['round_over']})
     up = GameplayAgent().run(_with_plan(state, Step(id='g1', goal='fight', agent='gameplay')), ctx)
     gm = up['metrics']['gameplay']
     assert gm['counts'] == {'punch': 1, 'block': 1} and gm['stopped'] == 'round_over'
@@ -484,3 +484,53 @@ def test_parse_action_tolerates_llm_quirks() -> None:
     assert parse_action({'kind': 'wait', 'name': 3.0}).duration == 3.0
     assert parse_action({'kind': 'wait', 'duration': None}).duration == 1.0
     assert parse_action({'kind': 'press', 'name': 'Cross', 'times': '2'}).times == 2
+
+def test_gameplay_stop_on_comes_from_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    script(monkeypatch, scr('unknown'))
+    monkeypatch.setattr(llm, 'available', lambda: True)
+    replies = [{'action': 'punch', 'situation': {'round_over': True}},
+               {'action': 'punch', 'situation': {'level_complete': True}}]
+    monkeypatch.setattr(llm, 'ask', lambda *a, **k: replies.pop(0))
+    sc = Scenario(id='g', goal='play', type='gameplay_explore', limits={'explore_ticks': 10})
+    state, ctx, _ = make(tmp_path, sc, profile={**PROFILE, 'stop_on': ['level_complete']})
+    gm = GameplayAgent().run(_with_plan(state, Step(id='g1', goal='play', agent='gameplay')),
+                             ctx)['metrics']['gameplay']
+    # 'round_over' is not a stop condition unless the game profile declares it.
+    assert gm['stopped'] == 'level_complete' and gm['counts'] == {'punch': 1}
+
+
+def test_default_action_space_is_game_neutral() -> None:
+    space = gameplay.action_space(None)
+    assert set(space) >= {'idle', 'cross', 'move_left'}
+    assert all(a.kind in ('wait', 'press', 'stick') for acts in space.values() for a in acts)
+
+
+def test_hud_expectations_use_profile_names() -> None:
+    from ps5agent.agents.verifier import check_hud
+    gm = {'hud_before': {'hud_visible': 1.0, 'stamina': 0.9},
+          'hud_after': {'hud_visible': 1.0, 'stamina': 0.5}}
+    assert check_hud({'hud_visible': True, 'stamina_drop_min': 0.3}, gm)[0] == Verdict.PASS
+    assert check_hud({'stamina_drop_min': 0.5}, gm)[0] == Verdict.FAIL
+    assert check_hud({'hud_visible': False}, gm)[0] == Verdict.FAIL
+    off = {'hud_before': {'hud_visible': 0.0}, 'hud_after': {'hud_visible': 0.0}}
+    assert check_hud({'hud_visible': True}, off)[0] == Verdict.BLOCKED
+    assert check_hud({'missing': True}, gm)[0] == Verdict.BLOCKED
+
+
+def test_hud_gate_is_declared_by_profile() -> None:
+    from ps5agent.perception.hud import read_hud
+    f = np.zeros((1080, 1920, 3), np.uint8)
+    f[10:20, 0:1920] = (0, 200, 255)             # bright orange bar (HSV in default range)
+    bar = {'type': 'bar', 'x0': 0, 'x1': 1920, 'y0': 10, 'y1': 20, 'median': 1}
+    shown = {'type': 'presence', 'x0': 0, 'x1': 10, 'y0': 500, 'y1': 510, 'min': 0.5}
+    prof = {'hud': {'energy': bar, 'hud_on': shown}}
+    assert read_hud(f, prof)['energy'] > 0.9          # no gate declared: bar is read
+    assert read_hud(f, {**prof, 'hud_gate': 'hud_on'})['energy'] == 0.0
+
+
+def test_macro_catalogue_merges_controls_rig_and_profile() -> None:
+    from ps5agent.core.macros import catalogue, is_known
+    cat = catalogue({'macros': {'open_map': {'description': 'Open the map', 'steps': []}}})
+    assert {'open_home', 'open_search', 'home_from_game', 'open_map'} <= set(cat)
+    assert is_known('focus_tile:any_title:ps5') and is_known('open_home')
+    assert not is_known('open_map') and not is_known('nonexistent_macro')

@@ -63,9 +63,10 @@ class Ctx:
               perception: Any = None) -> Ctx:
         from ..safety.action_gate import ActionGate
         s = settings or get_settings()
-        return cls(rig=rig, gate=ActionGate(rig, evidence, scenario, s),
+        profile = load_game_profile(scenario.game, s)
+        return cls(rig=rig, gate=ActionGate(rig, evidence, scenario, s, game_profile=profile),
                    perception=perception or Perception(), evidence=evidence, settings=s,
-                   game_profile=load_game_profile(scenario.game, s))
+                   game_profile=profile)
 
 
 def limit(ctx: Ctx, state: RunState, key: str, settings_key: str, default: int) -> int:

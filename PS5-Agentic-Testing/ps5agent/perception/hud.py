@@ -1,6 +1,7 @@
 """Game HUD readers driven by the game profile (config/games/<game>/profile.yaml).
 
-A `bar` reader measures the lit fraction of a horizontal health bar. Bars are
+A `bar` reader measures the lit fraction of a horizontal bar (health, stamina,
+progress...). A `presence` reader reports whether a HUD element is shown. Bars are
 read on a thin strip, per-column "lit" (HSV range) then median-filtered so a
 character briefly overlapping the bar does not read as damage.
 """
@@ -30,7 +31,7 @@ def bar_fraction(frame: np.ndarray, bar: dict[str, Any]) -> float:
     """Remaining fraction (0..1).
 
     `drain: left` means the bar empties from its left edge, so health is the
-    lit span ending at the right (inner) edge. Small unlit gaps (a fighter's
+    lit span ending at the right (inner) edge. Small unlit gaps (a character's
     head over the bar) are bridged; the first long gap ends the bar.
     """
     lit = _lit_columns(frame, bar)
@@ -70,14 +71,18 @@ def presence(frame: np.ndarray, spec: dict[str, Any]) -> bool:
 
 
 def read_hud(frame: np.ndarray, profile: dict[str, Any]) -> dict[str, float]:
-    """Bars as 0..1 fractions; presence checks as 1.0/0.0. Bars read 0 when a
-    declared `in_fight` presence check fails (cutscene, menu, pause)."""
+    """Bars as 0..1 fractions; presence checks as 1.0/0.0.
+
+    If the profile names a presence check in `hud_gate` (e.g. the in-play HUD
+    being visible), bars read 0 while that check fails (cutscene, menu, pause).
+    """
     out: dict[str, float] = {}
     specs = profile.get("hud", {}) or {}
     for name, spec in specs.items():
         if spec.get("type") == "presence":
             out[name] = 1.0 if presence(frame, spec) else 0.0
-    gate = out.get("in_fight", 1.0)
+    gate_name = profile.get("hud_gate")
+    gate = out.get(gate_name, 1.0) if gate_name else 1.0
     for name, spec in specs.items():
         if spec.get("type") == "bar":
             out[name] = round(bar_fraction(frame, spec), 3) if gate else 0.0

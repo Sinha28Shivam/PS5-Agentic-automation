@@ -101,7 +101,7 @@ class TypistAgent(Agent):
                     # is stale. Walking the cursor back to a known key fixes the
                     # retry; dropping the cached keyboard (reset_keyboard) would
                     # instead assume focus is at initial_focus and mistype again -
-                    # measured on hardware: "mortal" retyped as "fgggz.".
+                    # measured on hardware: a retyped word came out as garbage.
                     anchor = getattr(ctx.rig, 'anchor_keyboard', None)
                     if callable(anchor):
                         anchor()

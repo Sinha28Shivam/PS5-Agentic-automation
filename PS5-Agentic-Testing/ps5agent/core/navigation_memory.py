@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -14,9 +13,13 @@ from .state import Action, Expectation, RunState, ScreenState
 
 BUTTONS = frozenset(('cross', 'circle', 'square', 'triangle', 'up', 'down', 'left',
                      'right', 'options', 'ps', 'l1', 'r1', 'l2', 'r2'))
-MACROS = frozenset(('open_home', 'open_search', 'submit_search', 'confirm', 'go_back',
-                    'home_from_game', 'open_games_tab', 'open_media_tab'))
 MAX_ACTIONS = 12
+
+
+def navigation_macro(name: str) -> bool:
+    '''Any console macro from controls.yaml or the rig; game combos are not navigation.'''
+    from .macros import is_known
+    return not name.startswith('combo:') and is_known(name)
 
 
 def digest(value: Any) -> str:
@@ -63,7 +66,7 @@ def safe_actions(raw: list[Any]) -> list[Action]:
             if a.name not in BUTTONS:
                 raise ValueError('unknown controller button')
         elif a.kind == 'macro':
-            if a.name not in MACROS and not re.fullmatch(r'focus_tile:[^:\r\n]{1,100}(?::ps[45])?', a.name):
+            if not navigation_macro(a.name):
                 raise ValueError('unsupported navigation macro')
         elif a.kind != 'wait' or a.name or a.times != 1:
             raise ValueError('only button, navigation macro and wait actions may be learned')

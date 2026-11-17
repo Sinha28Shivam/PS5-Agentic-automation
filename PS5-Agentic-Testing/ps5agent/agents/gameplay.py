@@ -1,4 +1,7 @@
-'''Gameplay: drives a running game (PS4-compatible build via DS4 emulation).
+'''Gameplay: drives a running game (any title the emulated controller can drive).
+
+Game-agnostic: every game-specific detail (moves, combos, HUD regions, stop
+situations, notes) comes from config/games/<game>/profile.yaml.
 
 Modes (step goal prefix 'explore'/'scripted', else scenario.type):
   scripted - runs step.actions; {combo: name} / macro 'combo:<name>' expand from
@@ -7,9 +10,10 @@ Modes (step goal prefix 'explore'/'scripted', else scenario.type):
              abs grey diff before vs after -> metrics['gameplay']['hud'].
   explore  - for explore_seconds (step/limits, default 60), each tick (gameplay.tick_seconds,
              default 1.5): frame -> LLM (fast) picks a name from profile['action_space'];
-             its shorthand sequence runs through the gate. Stops on round_over / menu /
-             LLM budget. No LLM -> seeded random policy (noted). gate.reset_streak() every
-             tick: fights always animate, so dead-input is not meaningful here.
+             its shorthand sequence runs through the gate. Stops when the LLM reports a
+             situation in DEFAULT_STOP_ON + profile['stop_on'], or on LLM budget. No LLM ->
+             seeded random policy (noted). gate.reset_streak() every tick: gameplay
+             always animates, so dead-input is not meaningful here.
 metrics['gameplay'] = {mode, counts{name: n}, ticks, policy, hud, stopped}.
 
 Routing: 'verifier'; 'reporter' (BLOCKED) on max_steps denial or no frames;
@@ -35,13 +39,25 @@ from .planner import parse_action
 
 CLOCK = time.monotonic
 SLEEP = time.sleep
+# Game-neutral fallback: plain controller inputs. A game profile's
+# `action_space` replaces it with meaningful, named moves.
 DEFAULT_ACTION_SPACE: dict[str, list[dict[str, Any]]] = {
     'idle': [{'wait': 0.3}],
-    'walk_forward': [{'stick': 'left_stick', 'direction': 'right', 'duration': 0.4}],
-    'walk_back': [{'stick': 'left_stick', 'direction': 'left', 'duration': 0.4}],
-    'punch': [{'press': 'square'}], 'kick': [{'press': 'cross'}],
-    'block': [{'hold': 'r2', 'duration': 0.6}],
+    'move_left': [{'stick': 'left_stick', 'direction': 'left', 'duration': 0.4}],
+    'move_right': [{'stick': 'left_stick', 'direction': 'right', 'duration': 0.4}],
+    'move_up': [{'stick': 'left_stick', 'direction': 'up', 'duration': 0.4}],
+    'move_down': [{'stick': 'left_stick', 'direction': 'down', 'duration': 0.4}],
+    'cross': [{'press': 'cross'}], 'square': [{'press': 'square'}],
+    'triangle': [{'press': 'triangle'}],
 }
+# Situations reported by the gameplay LLM that end an explore run. A profile can
+# add game-specific ones (e.g. 'level_complete', 'game_over') via `stop_on`.
+DEFAULT_STOP_ON = ('menu', 'session_over')
+
+
+def stop_conditions(profile: dict[str, Any] | None) -> tuple[str, ...]:
+    extra = (profile or {}).get('stop_on') or []
+    return tuple(dict.fromkeys([*DEFAULT_STOP_ON, *(str(x) for x in extra)]))
 
 
 def hud_diff(before: np.ndarray | None, after: np.ndarray | None,
@@ -142,7 +158,7 @@ class GameplayAgent(Agent):
 
     @staticmethod
     def hud_read(ctx: Ctx, profile: dict[str, Any], n: int = 3) -> dict[str, float]:
-        """Median of n fresh HUD reads (robust to a fighter briefly covering a bar)."""
+        """Median of n fresh HUD reads (robust to something briefly covering a bar)."""
         if not profile.get('hud'):
             return {}
         reads = []
@@ -200,6 +216,8 @@ class GameplayAgent(Agent):
         tick = float(ctx.settings.get('gameplay.tick_seconds', 1.5) or 1.5)
         max_ticks = int(state.scenario.limits.get('explore_ticks') or 0)
         system = load_prompt('gameplay', ctx.settings)
+        stop_on = stop_conditions(ctx.game_profile)
+        prof = ctx.game_profile or {}
         rng = random.Random(self.seed)
         deadline = CLOCK() + seconds
         while CLOCK() < deadline and (not max_ticks or gm['ticks'] < max_ticks):
@@ -212,15 +230,17 @@ class GameplayAgent(Agent):
             if gm['policy'] != 'random':
                 frames = [ctx.last_frame] if ctx.last_frame is not None else None
                 payload = {'goal': step.goal, 'tick': gm['ticks'], 'action_space': names,
-                           'screen': screen_summary(screen, 300),
-                           'counts': gm['counts'], 'game': (ctx.game_profile or {}).get('name')}
+                           'screen': screen_summary(screen, 300), 'counts': gm['counts'],
+                           'game': prof.get('name'), 'game_notes': prof.get('notes'),
+                           'stop_on': list(stop_on)}
                 out = ask_llm(ctx, json.dumps(payload, default=str), system=system, frames=frames,
                               tier='fast', max_tokens=300)
             if isinstance(out, dict):
                 gm['policy'] = 'llm'
                 sit = out.get('situation') or {}
-                if sit.get('round_over') or sit.get('menu'):
-                    gm['stopped'] = 'round_over' if sit.get('round_over') else 'menu'
+                hit = next((k for k in stop_on if sit.get(k)), None)
+                if hit:
+                    gm['stopped'] = hit
                     break
                 name = str(out.get('action') or '')
                 if name not in space:

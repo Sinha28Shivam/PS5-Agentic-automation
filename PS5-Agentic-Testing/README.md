@@ -86,12 +86,13 @@ repo-root `.env` (see `.env.example`). It is only needed for goal-only steps and
 ..\venv\Scripts\python.exe -m pytest -q                # all unit + replay tests
 ..\venv\Scripts\python.exe -m ps5agent graph           # print the agent graph (mermaid)
 # Replay a scenario through the full graph using frames from a folder:
-..\venv\Scripts\python.exe -m ps5agent --dry-run --frames <folder> run scenarios/system_ui/home_navigation.yaml
+..\venv\Scripts\python.exe -m ps5agent --dry-run --frames <folder> run scenarios/system_ui/astro_playroom_hub.yaml
 ```
 
-`--dry-run` serves one frame per action, in file-name order. The run spends 4
-frames on setup and preflight (`open_home`, `open_home`, `ps` probe,
-`circle` undo), then one per step action. Without `--frames` it replays every
+`--dry-run` serves one frame per action, in file-name order. The run spends 6
+actions on setup and preflight (setup `open_home` + `open_games_tab`, the
+preflight repeating them, the `triangle` probe and its `down` undo), then one
+per step action. Without `--frames` it replays every
 file in `tests/fixtures/frames` alphabetically, so expect FAIL. That only shows
 the plumbing works.
 
@@ -103,10 +104,10 @@ python gimx-session\gimx_session.py start     # TAP PS on the wired DS4 when ask
 python tests\prove_input_reaches_ps5.py       # must PASS before any agent run
 cd ..\PS5-Agentic-Testing
 ..\venv\Scripts\python.exe -m ps5agent screens                                  # what screen is this? (no input)
-..\venv\Scripts\python.exe -m ps5agent run scenarios/system_ui/home_navigation.yaml
+..\venv\Scripts\python.exe -m ps5agent run scenarios/system_ui/astro_playroom_hub.yaml
 ..\venv\Scripts\python.exe -m ps5agent run --goal "Open Settings and go to System" --type system_ui
 ..\venv\Scripts\python.exe -m ps5agent suite suites/smoke.yaml                  # add --tag smoke to filter
-..\venv\Scripts\python.exe -m ps5agent soak scenarios/soak/home_soak.yaml --minutes 5
+..\venv\Scripts\python.exe -m ps5agent soak scenarios/soak/astro_playroom_soak.yaml --minutes 5
 ```
 
 Each run writes `artifacts/runs/<run_id>/`: `report.html`, `result.json`,
@@ -121,37 +122,86 @@ Suites write `artifacts/reports/<ts>-<suite>/` with `suite.html`, `suite.json`
 (including LLM call and token totals) and `junit.xml`. The exit code is 0 only
 when everything passed.
 
+## Base code vs. game / scenario content
+
+The runner is **game- and scenario-agnostic**. Nothing under `ps5agent/`,
+`config/prompts/` or `config/screens/` names a game or a test case; it only
+knows the PS5 console (Home, Control Center, search, keyboard, settings) and
+generic agent behaviour. Everything specific is data, added only when needed:
+
+| What | Where | Used when |
+|---|---|---|
+| A test case | `scenarios/<area>/<id>.yaml` | `run` / `suite` / `soak` |
+| A group of test cases | `suites/<name>.yaml` | `suite` |
+| A game | `config/games/<game>/profile.yaml` (start from `config/games/_template/`) | a scenario sets `game: <game>` |
+| In-game screens | `config/games/<game>/screens/*.yaml` | loaded **only** for that game's scenarios, layered on the console screens |
+| Offline replay of a scenario | `tests/replays/<scenario_id>.yaml` | `pytest` |
+| Console macros | `PS5-Automation-Python/config/controls.yaml` `macros:` | always; the planner/navigator/learner read the list from there |
+
+A game profile can provide: `notes` and `launch` (passed to the planner and
+navigator LLMs), `macros` (named sequences, each step still checked by the
+ActionGate), `moves` / `combos` / `action_space` / `stop_on` (gameplay agent),
+`hud` + `hud_gate` (HUD readers and `expect: {hud: ...}` checks by name),
+`forbidden` (per-screen buttons the ActionGate refuses), `dialogs` and
+`recover` (recovery agent). Unknown games and scenarios therefore need no
+code change.
+
+## Scenarios (ASTRO's PLAYROOM)
+
+All shipped scenarios target the pre-installed PS5 title **ASTRO's PLAYROOM**
+and stay in the **system UI**. PS5-native games expect a DualSense and this rig
+emulates a DS4, so in-game menus and gameplay are deliberately not automated.
+
+| Scenario | Suite | What it proves |
+|---|---|---|
+| `system_ui/astro_playroom_hub.yaml` | smoke, regression | tile found on Home (`focus_tile:playroom`), game hub opens, back to Home |
+| `system_ui/astro_playroom_search.yaml` | smoke, regression | global search, typing `astro`, the game in results |
+| `game_menu/astro_playroom_launch.yaml` | regression | Play Game leaves Home/hub, `home_from_game` returns to Home (game left suspended) |
+| `soak/astro_playroom_soak.yaml` | soak | repeated hub round trips under the Monitor |
+
+The game profile is `config/games/astros_playroom/profile.yaml`. No live frames
+of this title are recorded yet: `tests/test_scenarios.py` replays each scenario
+through the full graph with synthetic frames whose OCR text comes from the
+screen signatures. That proves the scenario logic, not the console. Record real
+frames on the rig before trusting the `focus_tile` caption match and the
+`game_hub` signature for this title.
+
 ## Adding a test case
 
 A test case is a YAML scenario in `scenarios/<area>/<id>.yaml`. The file name
 must equal `id`.
 
 ```yaml
-# scenarios/system_ui/control_center.yaml (verified on hardware)
-id: control_center
-goal: "Open the Control Center with PS and close it with Circle"
+# scenarios/system_ui/astro_playroom_hub.yaml
+id: astro_playroom_hub
+goal: "Focus the ASTRO's PLAYROOM tile on Home, open its game hub and return Home"
 type: system_ui            # system_ui | game_menu | gameplay_scripted | ...
-tags: [smoke, system]
-setup: [{macro: open_home}]
+tags: [smoke, system, astro]
+setup: [{macro: open_home}, {macro: open_games_tab}]
 steps:                     # deterministic: no LLM needed
-  - id: open_cc
-    goal: "Open the Control Center"
-    actions: [{press: ps}]
-    expect: {screen: control_center, screen_changed: true}
-  - id: close_cc
-    goal: "Close the Control Center"
-    actions: [{press: circle}]
-    expect: {screen: home, screen_changed: true}
-limits: {max_steps: 15}
+  - id: focus_tile
+    goal: "Focus the ASTRO's PLAYROOM tile on the Home game row"
+    actions: [{macro: "focus_tile:playroom"}]
+    expect: {text_contains: ["playroom"]}
+  - id: open_hub
+    goal: "Move down into the ASTRO's PLAYROOM game hub (Play Game button)"
+    actions: [{press: down}]
+    expect: {screen: game_hub, text_contains: ["playroom"], screen_changed: true}
+  - id: back_home
+    goal: "Leave the hub and return to the Games tab of Home"
+    actions: [{macro: open_home}, {macro: open_games_tab}]
+    expect: {screen: home}
+teardown: [{macro: open_home}, {macro: open_games_tab}]
+limits: {max_steps: 25}
 ```
 
 Goal-only version (the LLM plans the buttons; needs `ANTHROPIC_API_KEY`):
 
 ```yaml
-id: settings_console_info
-goal: "Open Settings and navigate to the System page, then return home without changing anything"
+id: astro_playroom_goal
+goal: "Open the ASTRO's PLAYROOM game hub from Home, then return home without starting the game"
 type: system_ui
-tags: [regression, system, llm]
+tags: [system, llm]
 setup: [{macro: open_home}]
 teardown: [{macro: open_home}]
 limits: {max_steps: 30}
@@ -159,23 +209,31 @@ limits: {max_steps: 30}
 
 - **Actions:** `press` (`times`, `duration`), `hold`, `macro` (from
   `PS5-Automation-Python/config/controls.yaml`, e.g. `open_home`,
-  `open_search`, `submit_search`), `type: "text"`, `stick`, `trigger`,
-  `wait: <seconds>`.
-- **Expect:** `screen` (an id from `config/screens/*.yaml`),
-  `text_contains`, `text_absent`, `screen_changed`, `vision: "<claim>"` (needs
-  the LLM), and `hud` for games.
+  `open_search`, `submit_search`; the rig macros `home_from_game` and
+  `focus_tile:<caption_words>[:ps4|ps5]`; or the game profile's `macros`),
+  `type: "text"`, `stick`, `trigger`, `combo: <name>`, `wait: <seconds>`.
+- **Expect:** `screen` (an id from `config/screens/*.yaml` or the game's
+  `screens/`), `text_contains`, `text_absent`, `screen_changed`,
+  `vision: "<claim>"` (needs the LLM), and `hud` for games: keys are names from
+  the profile's `hud` block (`<presence>: true`, `<bar>_drop_min: 0.1`,
+  `<bar>_min: 0.2`).
 - **Goal-only steps:** leave out `actions` (or the whole `steps` list, using
   `hints` instead) and the planner/navigator LLM drives. Set `agent:` to
   `navigator`, `typist` or `gameplay`.
 - **New screen:** capture a real frame (`python capture\capture.py grab`),
-  add `config/screens/<id>.yaml` with `any_text`/`none_text` taken from that
-  frame's OCR, save the frame to `tests/fixtures/frames/`, and add it to
-  `EXPECTED` in `tests/test_screens_replay.py`. Never guess signatures.
+  add `config/screens/<id>.yaml` (console screen) or
+  `config/games/<game>/screens/<id>.yaml` (in-game screen) with
+  `any_text`/`none_text` taken from that frame's OCR, save the frame to
+  `tests/fixtures/frames/`, and add it to `EXPECTED` in
+  `tests/test_screens_replay.py`. Never guess signatures.
+- **New game:** copy `config/games/_template/` to `config/games/<game>/`, set
+  `id`, fill only what the scenarios need, and set `game: <game>` in them.
 - **Put it in a suite:** add the path to `suites/smoke.yaml` or
   `suites/regression.yaml`, or create a new `suites/<name>.yaml` whose `name`
   equals the file name.
 
-`tests/test_scenarios.py` validates every scenario and suite automatically
-(ids, screen ids, agents, action syntax, suite paths). Run `pytest`
-after adding one. To also replay it offline, copy `test_replay_home_navigation`
-in that file and give it the frame sequence the run should see.
+`tests/test_scenarios.py` validates every scenario, game profile and suite
+automatically (ids, screen ids incl. game screens, agents, action syntax,
+macro names, suite paths). Run `pytest` after adding one. To also replay it
+offline, add `tests/replays/<scenario_id>.yaml` (format in
+`tests/replays/README.md`); no test code changes are needed.

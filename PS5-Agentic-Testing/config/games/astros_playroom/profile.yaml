@@ -3,7 +3,8 @@
 #  System-UI scope only: the rig emulates a DualShock 4 and PS5-native games
 #  expect a DualSense, so in-game menus/gameplay are NOT automated here.
 #  Live captures of this title do not exist yet; record real frames
-#  (python capture\capture.py grab) before adding in-game screens.
+#  (python capture\capture.py grab) before adding in-game screens under
+#  config/games/astros_playroom/screens/.
 # ===========================================================================
 id: astros_playroom
 name: "ASTRO's PLAYROOM"

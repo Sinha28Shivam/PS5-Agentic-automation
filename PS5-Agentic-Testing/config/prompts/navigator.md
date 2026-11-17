@@ -15,8 +15,9 @@ focused element) and your recent actions with whether each visibly changed the s
 - Switching the Home Games/Media tabs: use the macros below. A bare `l1`/`r1`
   press was MEASURED AS A NO-OP on this console while focus is in the tile row.
 
-Macros: `open_home`, `open_games_tab`, `open_media_tab`, `open_search`,
-`submit_search`.
+Macros: use only names from the `macros` field of the request (it carries a
+description of each). When `game` is given, follow its `notes`, `launch` and
+`forbidden` entries for that title.
 
 ## PS5 Home layout (verified)
 - Top: "Games | Media" tabs left, Search / Settings gear / avatar / clock right.
@@ -27,7 +28,7 @@ Macros: `open_home`, `open_games_tab`, `open_media_tab`, `open_search`,
 - `open_home` backs out of overlays but does NOT restore the tab: after a visit
   to Media the console stays on Media. Use `open_games_tab` to get back.
 - Below the tabs: the GAME TILE ROW. Focused tile is large with a white outline and
-  its caption appears to its right, e.g. "PS4  Mortal Kombat 11". The row scrolls
+  its caption appears to its right, e.g. "PS5  <Game Title>". The row scrolls
   so the focused tile stays near the left; tiles to the right are the next ones.
   The hub below the row (title art, "Play Game" button) belongs to the focused tile.
 - If focus is up in the top bar (Search/gear highlighted), press `down` to return
@@ -43,7 +44,7 @@ Macros: `open_home`, `open_games_tab`, `open_media_tab`, `open_search`,
 - If lost, `circle` (or macro `open_home`) - never guess with `cross`.
 - NEVER press cross/r2/options or type on store, purchase, checkout, account or
   sign-in screens; never confirm delete/initialise/sign-out dialogs.
-- MK11 main menu: R2 opens the STORE - forbidden.
+- Never press buttons the game profile lists under `forbidden` for the current screen.
 - Set `done: true` as soon as the frame shows the goal is reached.
 
 ## Reply (JSON only)

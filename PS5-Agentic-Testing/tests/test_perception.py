@@ -246,3 +246,18 @@ def test_vision_judge_live() -> None:
     out = vision.judge([_img('ps5-home-1080p.png'), _img('ps5-search.png')],
                        'the search screen is open')
     assert out is not None and out['holds'] is True
+
+def test_game_screens_layer_only_when_active(screens_dir: Path, tmp_path: Path) -> None:
+    game = tmp_path / 'game_screens'
+    game.mkdir()
+    (game / 'level_select.yaml').write_text(
+        'id: level_select\nany_text: ["select level"]\nmin_score: 0.5\n', encoding='utf-8')
+    try:
+        assert 'level_select' not in signatures.load_screens()
+        signatures.set_game_screens(game, tmp_path / 'missing')
+        loaded = signatures.load_screens()
+        assert {'home', 'search', 'level_select'} <= set(loaded)
+        assert signatures.best('select level world 1', loaded)[0] == 'level_select'
+    finally:
+        signatures.set_game_screens()
+    assert 'level_select' not in signatures.load_screens()

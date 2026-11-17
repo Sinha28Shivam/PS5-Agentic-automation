@@ -44,10 +44,12 @@ def frame_delta(a: np.ndarray, b: np.ndarray) -> float:
 
 
 class ActionGate:
-    def __init__(self, rig: Any, evidence: Evidence, scenario: Scenario, settings: Any = None):
+    def __init__(self, rig: Any, evidence: Evidence, scenario: Scenario, settings: Any = None,
+                 game_profile: dict[str, Any] | None = None):
         self.rig = rig
         self.evidence = evidence
         self.scenario = scenario
+        self.game_profile = game_profile or {}
         s = settings or get_settings()
         self.allow = {a.lower() for a in scenario.allow}
         self.max_steps = int(scenario.limits.get("max_steps") or s.get("runtime.max_steps", 40) or 40)
@@ -86,6 +88,11 @@ class ActionGate:
         if (danger in DANGER_SCREENS and not escape and "store" not in self.allow
                 and (action.kind == "type" or _button(action, "cross", "r2", "options"))):
             return False, f"danger screen ({danger}): {action.label()} not allowed"
+        # Game profile rules: [{screen: <id>, buttons: [r2, ...]}] (e.g. a store shortcut).
+        for rule in self.game_profile.get("forbidden") or []:
+            if (isinstance(rule, dict) and rule.get("screen") == screen.screen_id
+                    and _button(action, *[str(b).lower() for b in rule.get("buttons") or []])):
+                return False, f"game profile forbids {action.label()} on {screen.screen_id}"
         if _button(action, "cross") and "destructive" not in self.allow:
             texts = [action.reason.lower(), screen.focused.lower()]
             m = next((m for t in texts if t and (m := _DESTRUCTIVE_RE.search(t))), None)
@@ -110,6 +117,16 @@ class ActionGate:
             time.sleep(wait)
         self._last_send = time.monotonic()
 
+    def _expand_profile_macro(self, action: Action) -> list[Action] | None:
+        if action.kind != "macro":
+            return None
+        from ..agents.planner import parse_action
+        from ..core.macros import profile_macro
+        raw = profile_macro(self.game_profile, action.name)
+        if raw is None:
+            return None
+        return [parse_action(d) for d in raw]
+
     def execute(self, action: Action, screen: ScreenState, agent: str,
                 settle: float | None = None) -> ActionRecord:
         label = action.label()
@@ -117,6 +134,14 @@ class ActionGate:
         rec = ActionRecord(action=action, agent=agent)
         rec.before_frame, rec.before_hash = self._save(before, f"{agent}-{label}-before")
         allowed, reason = self.check(action, screen, agent)
+        steps = self._expand_profile_macro(action) if allowed else None
+        if allowed and steps:
+            # A game-profile macro is a named sequence: each element obeys the same rules.
+            for sub in steps:
+                allowed, reason = self.check(sub, screen, agent)
+                if not allowed:
+                    reason = f"{label}: {sub.label()} {reason}"
+                    break
         if not allowed:
             rec.allowed, rec.blocked_reason = False, reason
             self.evidence.log("action_blocked", agent=agent, action=label, reason=reason,
@@ -124,7 +149,10 @@ class ActionGate:
             return rec
         if action.kind != "wait":
             self._rate_limit()
-        rec.sent_ok = bool(perform(self.rig, action))
+        if steps:
+            rec.sent_ok = all([bool(perform(self.rig, sub)) for sub in steps])
+        else:
+            rec.sent_ok = bool(perform(self.rig, action))
         if settle is None:
             settle = {"type": 0.8, "wait": 0.0}.get(action.kind, 1.0)
         if settle > 0:

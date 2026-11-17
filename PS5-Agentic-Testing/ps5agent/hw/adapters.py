@@ -202,7 +202,7 @@ class Rig:
         character but does NOT move the key cursor, so the focus stays where
         the previous word finished. Re-anchoring there made the typist replay
         its moves from the wrong origin - measured on hardware 2026-11-09,
-        "mortal" was retyped as "fgggz.". Use `anchor_keyboard()` instead,
+        a six-letter word was retyped as garbage. Use `anchor_keyboard()` instead,
         which walks the cursor back to a known key.
         """
         self.kb = None

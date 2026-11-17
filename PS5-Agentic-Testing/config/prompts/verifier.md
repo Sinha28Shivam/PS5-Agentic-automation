@@ -15,5 +15,5 @@ capture-card frames provided (chronological: first = before, last = after).
 
 ## Reply (JSON only)
 ```json
-{"holds": true, "confidence": 0.9, "reason": "Search results list shows 'Astro Bot' as first tile"}
+{"holds": true, "confidence": 0.9, "reason": "Search results list shows the searched title as the first tile"}
 ```
