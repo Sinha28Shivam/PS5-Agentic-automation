@@ -1,0 +1,33 @@
+id: astro_playroom_launch
+goal: "Launch ASTRO's PLAYROOM from its Home game hub, then return to Home through the Control Center"
+type: game_menu
+game: astros_playroom
+tags: [regression, game, astro]
+# System-UI scope: proves the console leaves Home and boots the title, then
+# that Home is reachable again. It does not drive the game itself (PS5-native
+# titles expect a DualSense; this rig emulates a DS4). The game is left
+# suspended in the background.
+setup: [{macro: open_home}, {macro: open_games_tab}]
+steps:
+  - id: focus_tile
+    goal: "Focus the ASTRO's PLAYROOM tile on the Home game row"
+    actions: [{macro: "focus_tile:playroom"}]
+    expect: {text_contains: ["playroom"]}
+  - id: open_hub
+    goal: "Move down to the Play Game button in the game hub"
+    actions: [{press: down}]
+    expect: {screen: game_hub, text_contains: ["playroom"]}
+  - id: start
+    goal: "Start the game with Play Game and wait for it to boot"
+    # No screen_changed here: the last action is the wait, whose before/after
+    # frames may be identical once the game settles. The hub ("play game") and
+    # Home ("console storage") texts being gone is the proof the game started.
+    actions: [{press: cross}, {wait: 20}]
+    expect:
+      text_absent: ["console storage", "friend activity", "play game"]
+  - id: return_home
+    goal: "Return to PS5 Home with the guarded Control Center route"
+    actions: [{macro: home_from_game}]
+    expect: {screen: home}
+teardown: [{macro: open_games_tab}]
+limits: {max_steps: 40}

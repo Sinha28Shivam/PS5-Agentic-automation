@@ -77,7 +77,9 @@ def script(monkeypatch: pytest.MonkeyPatch, *screens: ScreenState) -> list[Scree
 
 
 def scr(sid: str = 'home', text: str = '', **kw: Any) -> ScreenState:
-    return ScreenState(screen_id=sid, text=text, confidence=0.9, source='signature', **kw)
+    kw.setdefault('confidence', 0.9)
+    kw.setdefault('source', 'signature')
+    return ScreenState(screen_id=sid, text=text, **kw)
 
 
 def make(tmp_path: Path, scenario: Scenario | None = None, fr: list[np.ndarray] | None = None,
@@ -276,7 +278,11 @@ def test_typist_retries_on_mismatch(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     state, ctx, rig = make(tmp_path)
     state = _with_plan(state, parse_step({'type': 'Astro Bot'}, 0))
     up = TypistAgent().run(state, ctx)
-    assert rig.actions == ['type:Astro Bot'] + ['press:square'] * 6 + ['type:Astro Bot']
+    # The retry must RE-ANCHOR the key cursor first: backspace clears text but
+    # leaves focus where the previous attempt ended, so replaying the moves
+    # from a stale origin mistypes (hardware: 'mortal' -> 'fgggz.').
+    assert rig.actions == (['type:Astro Bot'] + ['press:square'] * 6
+                           + ['anchor_keyboard', 'type:Astro Bot'])
     assert up['next_agent'] == 'verifier' and up['plan'][0].reason == ''
 
 

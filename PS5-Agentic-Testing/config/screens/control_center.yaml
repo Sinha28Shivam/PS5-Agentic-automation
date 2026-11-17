@@ -1,8 +1,23 @@
 id: control_center
-description: "PS5 Control Center overlay (tap PS). Bottom card row over dimmed home."
-any_text: ["ease of use", "make your ps5", "accessible"]
+description: >
+  PS5 Control Center overlay (tap PS). Bottom card row over a dimmed home.
+  Signature re-derived from real 1080p frames captured 2026-11-09 on this rig
+  (artifacts/journey/tb_05_cc.jpg, cc_open.jpg). The previous "ease of use" /
+  "make your ps5 accessible" phrases came from a CONTEXTUAL TIP CARD that is
+  not always rendered, so the overlay classified as "unknown" on live hardware
+  and every control_center assertion was unprovable.
+  The phrases below are the persistent chrome of the overlay: the Discover /
+  tips strip and the "recently created" card.
+any_text:
+  - "ps5 featured tips"
+  - "learn how to use the ps5"
+  - "recently created new video clip"
+  - "ease of use"
+  - "make your ps5"
 all_text: []
-none_text: []
+# The dimmed home behind the overlay still leaks widget text through OCR, so
+# home's widget phrases must NOT be used as a negative here.
+none_text: ["pause menu"]
 min_score: 0.8
 priority: 8
 transitions: {circle: home}

@@ -1,4 +1,4 @@
 name: soak
-description: "Long-running stability."
+description: "Long-running stability around the ASTRO's PLAYROOM hub."
 scenarios:
-  - scenarios/soak/home_soak.yaml
+  - scenarios/soak/astro_playroom_soak.yaml

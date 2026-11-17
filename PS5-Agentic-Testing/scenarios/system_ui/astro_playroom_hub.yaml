@@ -1,0 +1,21 @@
+id: astro_playroom_hub
+goal: "Focus the ASTRO's PLAYROOM tile on Home, open its game hub and return Home"
+type: system_ui
+tags: [smoke, system, astro]
+# Read-only: never presses cross on the hub, so the game is not started.
+setup: [{macro: open_home}, {macro: open_games_tab}]
+steps:
+  - id: focus_tile
+    goal: "Focus the ASTRO's PLAYROOM tile on the Home game row"
+    actions: [{macro: "focus_tile:playroom"}]
+    expect: {text_contains: ["playroom"]}
+  - id: open_hub
+    goal: "Move down into the ASTRO's PLAYROOM game hub (Play Game button)"
+    actions: [{press: down}]
+    expect: {screen: game_hub, text_contains: ["playroom"], screen_changed: true}
+  - id: back_home
+    goal: "Leave the hub and return to the Games tab of Home"
+    actions: [{macro: open_home}, {macro: open_games_tab}]
+    expect: {screen: home}
+teardown: [{macro: open_home}, {macro: open_games_tab}]
+limits: {max_steps: 25}

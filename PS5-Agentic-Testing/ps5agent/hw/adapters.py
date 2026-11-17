@@ -192,7 +192,52 @@ class Rig:
         return self.kb.type_text(text)
 
     def reset_keyboard(self) -> None:
+        """Forget the cached keyboard so the NEXT type_text re-anchors.
+
+        Only valid when the on-screen keyboard has actually been reopened
+        (`open_search`), because a fresh OnScreenKeyboard assumes focus is on
+        `initial_focus`.
+
+        It must NOT be called after a backspace retry: Square deletes a
+        character but does NOT move the key cursor, so the focus stays where
+        the previous word finished. Re-anchoring there made the typist replay
+        its moves from the wrong origin - measured on hardware 2026-11-09,
+        "mortal" was retyped as "fgggz.". Use `anchor_keyboard()` instead,
+        which walks the cursor back to a known key.
+        """
         self.kb = None
+
+    def anchor_keyboard(self) -> bool:
+        """Drive the key cursor to the layout's initial_focus key.
+
+        The PS5 keyboard grid does not wrap vertically, so pressing Up enough
+        times always lands on the top row; the layout's wrap_horizontal flag
+        decides whether Left wraps. Walking to a known corner and then to
+        initial_focus makes the typist's internal position true again without
+        needing to reopen search.
+        """
+        if self.kb is None:
+            self.kb = self._kb_cls(self.pad)
+        kb = self.kb
+        rows = kb.rows
+        # Top-left corner: Up past every row, Left past every column.
+        for _ in range(len(rows)):
+            self.pad.press("up")
+            time.sleep(0.25)
+        for _ in range(kb.cols):
+            self.pad.press("left")
+            time.sleep(0.25)
+        kb.pos = (0, 0)
+        target = kb.index[str(kb.layout["initial_focus"]).lower()]
+        tr, tc = target
+        for _ in range(tr):
+            self.pad.press("down")
+            time.sleep(0.25)
+        for _ in range(tc):
+            self.pad.press("right")
+            time.sleep(0.25)
+        kb.pos = target
+        return True
 
     def stick(self, name: str, direction: str, duration: float) -> bool:
         return self.pad.stick(name, direction, duration=duration)
@@ -257,6 +302,10 @@ class FakeRig:
 
     def reset_keyboard(self) -> None:
         pass
+
+    def anchor_keyboard(self) -> bool:
+        self.actions.append("anchor_keyboard")
+        return True
 
     def session_up(self) -> bool:
         return True

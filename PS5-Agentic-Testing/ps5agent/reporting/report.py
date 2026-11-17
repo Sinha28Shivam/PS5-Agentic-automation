@@ -91,6 +91,11 @@ def write_report(state: RunState, run_dir: Path | str) -> dict[str, str]:
             rec[key] = rel_path(rec.get(key), out)
     for step in data['plan']:
         step['evidence'] = [p for p in (rel_path(e, out) for e in step['evidence']) if p]
+    for attempt in data.get('navigation_attempts') or []:
+        for key in ('start', 'end'):
+            if attempt.get(key):
+                attempt[key]['frame_path'] = rel_path(attempt[key].get('frame_path'), out)
+        attempt['evidence'] = [p for p in (rel_path(e, out) for e in attempt['evidence']) if p]
     data['screen']['frame_path'] = rel_path(data['screen'].get('frame_path'), out)
     data['summary'] = summary
     json_path = out / 'result.json'
@@ -98,11 +103,15 @@ def write_report(state: RunState, run_dir: Path | str) -> dict[str, str]:
 
     actions = [{**rec, 'label': raw.action.label(), 'offset': raw.ts - state.started}
                for rec, raw in zip(data['history'], state.history)]
+    attempts = [{**att, 'labels': [a.label() for a in raw.actions]}
+                for att, raw in zip(data.get('navigation_attempts') or [],
+                                    state.navigation_attempts)]
     metrics = {k: v for k, v in data['metrics'].items() if k != 'llm'}
     html = _env.get_template('report.html.j2').render(
         scenario=data['scenario'], summary=summary, health=data['health'], steps=data['plan'],
         actions=actions, notes=data['notes'], screen=data['screen'], llm=summary['llm'],
         metrics=metrics, run_id=state.run_id,
+        attempts=attempts, learning_contract=data.get('learning_contract'),
         started=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(state.started)),
         generated=time.strftime('%Y-%m-%d %H:%M:%S'))
     html_path = out / 'report.html'

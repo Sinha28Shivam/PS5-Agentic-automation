@@ -114,12 +114,35 @@ class Scenario(BaseModel):
     allow: list[str] = Field(default_factory=list)  # ActionGate exceptions, e.g. ["settings_write"]
 
 
+class NavigationAttempt(BaseModel):
+    """A navigation action boundary retained independently of retrying the step."""
+    generation: int = 0
+    end: ScreenState | None = None
+    step_id: str
+    key: str | None = None
+    source: Literal["original", "correction", "reused"] = "original"
+    lesson_id: str | None = None
+    history_start: int
+    history_end: int
+    start: ScreenState
+    verdict: Verdict = Verdict.PENDING
+    reason: str = ""
+    evidence: list[str] = Field(default_factory=list)
+    promoted_id: str | None = None
+    invalidated_id: str | None = None
+    memory_status: str = ""
+    actions: list[Action] = Field(default_factory=list)
+
+
 class RunState(BaseModel):
     """LangGraph state. Agents return partial dicts that are merged in."""
     run_id: str
     scenario: Scenario
     run_dir: str
     plan: list[Step] = Field(default_factory=list)
+    learning_contract: str | None = None
+    learning_verified: list[str] = Field(default_factory=list)
+    navigation_attempts: list[NavigationAttempt] = Field(default_factory=list)
     cursor: int = 0                       # index of current step
     screen: ScreenState = Field(default_factory=ScreenState)
     history: list[ActionRecord] = Field(default_factory=list)

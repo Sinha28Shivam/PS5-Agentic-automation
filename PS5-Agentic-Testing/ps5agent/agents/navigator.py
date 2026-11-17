@@ -42,11 +42,81 @@ class NavigatorAgent(Agent):
             recs.append(rec)
             if rec.after_frame:
                 step.evidence.append(rec.after_frame)
-            if not rec.allowed:
+            if not rec.allowed or (state.learning_contract and not rec.sent_ok):
                 return recs, screen, rec
         return recs, screen, None
 
     def run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
+        if state.learning_contract:
+            return self.learned_run(state, ctx)
+        return self._run(state, ctx)
+
+    def learned_run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
+        from ..core.navigation_memory import contract, context_key, safe_actions
+        from ..core.state import NavigationAttempt
+        from .learning import finish_attempt, memory_call
+        plan = copy_plan(state)
+        step = plan[state.cursor] if 0 <= state.cursor < len(plan) else None
+        if step is None:
+            return update(state, ctx, next_agent='verifier')
+        if contract(state) != state.learning_contract or step.attempts >= step.max_attempts:
+            step.verdict, step.reason = Verdict.BLOCKED, 'learning contract changed or attempt budget exhausted'
+            return update(state, ctx, plan=plan, verdict=Verdict.BLOCKED,
+                          verdict_reason=step.reason, next_agent='reporter')
+        screen = observe(ctx, state, f'learn-start-{step.id}')
+        start = screen.model_copy(deep=True)
+        key = context_key(state, screen)
+        found = memory_call(ctx, 'lookup', key) if key else None
+        generation, stored = found if found is not None else (0, None)
+        source = 'reused' if stored else 'correction' if step.attempts else 'original'
+        actions = stored or (list(step.actions) if source == 'original' else [])
+        notes: list[str] = []
+        step.attempts += 1
+        if not actions:
+            failures = [a for a in state.navigation_attempts if a.step_id == step.id]
+            payload = {'goal': step.goal, 'expect': step.expect.model_dump(mode='json'),
+                       'screen': screen_summary(screen), 'attempt': step.attempts,
+                       'max_attempts': step.max_attempts, 'buttons': BUTTONS, 'macros': MACROS,
+                       'original_actions': [a.model_dump(mode='json') for a in step.actions],
+                       'previous_attempts': [a.model_dump(mode='json') for a in failures[-3:]],
+                       'instruction': 'Propose a complete bounded navigation strategy. Do not change assertions.'}
+            out = ask_llm(ctx, json.dumps(payload, default=str),
+                          system=load_prompt('navigator', ctx.settings),
+                          frames=[ctx.last_frame] if ctx.last_frame is not None else None,
+                          tier='fast', max_tokens=600)
+            try:
+                raw = out.get('actions') if isinstance(out, dict) else None
+                actions = safe_actions([parse_action(a).model_dump(mode='json') for a in raw]) if raw else []
+            except (ValueError, TypeError, KeyError):
+                actions = []
+            if not actions:
+                step.verdict, step.reason = Verdict.BLOCKED, 'no safe navigation correction available within LLM budget'
+                return update(state, ctx, plan=plan, screen=screen, verdict=Verdict.BLOCKED,
+                              verdict_reason=step.reason, next_agent='reporter')
+        recs, screen, stopped = self.run_actions(state, ctx, step, screen, actions)
+        attempt = NavigationAttempt(step_id=step.id, key=key, source=source,
+                                    lesson_id=f'{key}:{generation}' if stored else None,
+                                    generation=generation, history_start=len(state.history),
+                                    history_end=len(state.history) + len(recs), start=start,
+                                    actions=actions)
+        notes.append(self.note(f'{step.id}: {source} strategy, attempt {step.attempts}/{step.max_attempts}'))
+        extra: dict[str, Any] = {}
+        if stopped:
+            extra = denial(stopped) if not stopped.allowed else {
+                'next_agent': 'reporter', 'verdict': Verdict.BLOCKED,
+                'verdict_reason': 'controller action was not delivered'}
+            step.verdict = Verdict.BLOCKED
+            step.reason = stopped.blocked_reason or 'controller action was not delivered'
+        result = self._finish(state, ctx, plan, recs, notes, screen,
+                              navigation_attempts=[*state.navigation_attempts, attempt], **extra)
+        if stopped:
+            closed = finish_attempt(state.model_copy(update=result), ctx, step.verdict, step.reason)
+            result.update(navigation_attempts=closed.navigation_attempts, notes=closed.notes)
+        elif ctx.learning_error:
+            result['notes'].append(ctx.learning_error)
+        return result
+
+    def _run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
         plan = copy_plan(state)
         step = plan[state.cursor] if 0 <= state.cursor < len(plan) else None
         if step is None:

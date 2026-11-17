@@ -155,6 +155,18 @@ class VerifierAgent(Agent):
                       next_agent='reporter', **kw)
 
     def run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
+        result = self._run(state, ctx)
+        step = state.current_step()
+        if state.learning_contract and step and step.verdict == Verdict.PENDING:
+            from .learning import finish_attempt
+            evaluated = state.model_copy(update={**result, 'cursor': state.cursor})
+            judged = evaluated.current_step()
+            closed = finish_attempt(evaluated, ctx, judged.verdict, judged.reason)
+            result.update(navigation_attempts=closed.navigation_attempts,
+                          learning_verified=closed.learning_verified, notes=closed.notes)
+        return result
+
+    def _run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
         plan = copy_plan(state)
         notes: list[str] = []
         cur = state.cursor
@@ -168,6 +180,8 @@ class VerifierAgent(Agent):
             step.attempts += 1
         after = observe(ctx, state, f'verify-{step.id}', use_vision='auto')
         last = state.history[-1] if state.history and state.history[-1].allowed else None
+        if state.learning_contract and step.agent == 'verifier':
+            last = None
         frames = [load_frame(last.before_frame) if last else None, ctx.last_frame]
         threshold = float(ctx.settings.get('verification.screen_change_threshold', 0.5) or 0.5)
         gm = dict((state.metrics or {}).get('gameplay') or {})
@@ -178,6 +192,11 @@ class VerifierAgent(Agent):
             gm = {'hud_before': {}, 'hud_after': GameplayAgent.hud_read(ctx, ctx.game_profile)}
         verdict, reason = check_expectation(step.expect, None, after, frames, last=last,
                                             threshold=threshold, gm=gm)
+        if state.learning_contract:
+            from .learning import pending, proof_error
+            error = proof_error(state.model_copy(update={'screen': after}), pending(state))
+            if error:
+                verdict, reason = Verdict.BLOCKED, error
         step.reason = reason
         if after.frame_path:
             step.evidence = list(step.evidence) + [after.frame_path]

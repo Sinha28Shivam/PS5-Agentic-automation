@@ -581,6 +581,41 @@ macros:
       - { trigger: "r2" }
       - { wait: 1.5 }
 
+  open_games_tab:
+    description: >
+      Select the Games tab on the PS5 home screen. VERIFIED ON HARDWARE
+      2026-11-09: from the Media tab this reaches the Games home at
+      classifier confidence 1.0.
+      WHY THIS EXISTS: `open_home` (circle x3) backs out of overlays but does
+      NOT restore the tab. After any visit to Media the console STAYS on
+      Media, so a scenario asserting `screen: home` fails even though the UI
+      is healthy. Measured: open_home from Media -> still home_media (0.967).
+      The tab strip needs focus (Up) before Left moves Media -> Games, and
+      Cross commits the tab and drops focus back into the content row.
+    steps:
+      - { button: "up" }
+      - { wait: 0.9 }
+      - { button: "left" }
+      - { wait: 0.9 }
+      - { button: "cross" }
+      - { wait: 1.5 }
+
+  open_media_tab:
+    description: >
+      Select the Media tab on the PS5 home screen. VERIFIED ON HARDWARE
+      2026-11-09 (reaches home_media at 0.967).
+      NOTE: a bare R1 press does NOT switch tabs on this console while focus
+      is in the content row - it was measured as a no-op (screen stayed
+      `home`). Focus must be raised to the tab strip first, then Right moves
+      Games -> Media and Cross commits it.
+    steps:
+      - { button: "up" }
+      - { wait: 0.9 }
+      - { button: "right" }
+      - { wait: 0.9 }
+      - { button: "cross" }
+      - { wait: 1.5 }
+
   nav_test:
     description: "Visible D-pad pattern to prove input reaches the console"
     steps:

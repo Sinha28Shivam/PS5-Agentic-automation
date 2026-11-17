@@ -82,6 +82,40 @@ a { color:#58a6ff; }
 </table>
 {% else %}<div class="dim">no plan</div>{% endif %}
 
+{% if attempts %}
+<h2>Navigation learning</h2>
+<div class="dim">contract: <code>{{ (learning_contract or '-')[:16] }}</code></div>
+<table>
+  <tr><th>#</th><th>step</th><th>source</th><th>verdict</th><th>actions</th><th>reason</th>
+      <th>memory</th><th>start / end</th><th>evidence</th></tr>
+  {% for a in attempts %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td class="mono">{{ a.step_id }}</td>
+    <td>{{ a.source }}{% if a.lesson_id %}<div class="dim mono">{{ a.lesson_id }}</div>{% endif %}</td>
+    <td><span class="badge {{ a.verdict }}">{{ a.verdict }}</span></td>
+    <td class="mono">{{ a.labels|join(', ') }}</td>
+    <td>{{ a.reason }}</td>
+    <td>
+      {% if a.promoted_id %}<span class="ok">promoted</span><div class="dim mono">{{ a.promoted_id }}</div>
+      {% elif a.invalidated_id %}<span class="warn">invalidated</span><div class="dim mono">{{ a.invalidated_id }}</div>
+      {% else %}<span class="dim">not promoted</span>{% endif %}
+      {% if a.memory_status %}<div class="dim">{{ a.memory_status }}</div>{% endif %}
+    </td>
+    <td><div class="pair">
+      {% for key, cap in [('start', 'start'), ('end', 'end')] %}
+      {% if a[key] and a[key].frame_path %}
+      <figure><a href="{{ a[key].frame_path }}" target="_blank"><img class="mini" src="{{ a[key].frame_path }}" alt="{{ cap }}"></a>
+        <figcaption>{{ cap }}: {{ a[key].screen_id }}</figcaption></figure>
+      {% endif %}
+      {% endfor %}
+    </div></td>
+    <td>{% for e in a.evidence %}<a href="{{ e }}" target="_blank"><img class="mini" src="{{ e }}" alt="{{ e }}"></a> {% endfor %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
 <h2>Action timeline</h2>
 {% if actions %}
 <table>

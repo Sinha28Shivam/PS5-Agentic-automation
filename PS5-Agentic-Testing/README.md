@@ -111,6 +111,12 @@ cd ..\PS5-Agentic-Testing
 
 Each run writes `artifacts/runs/<run_id>/`: `report.html`, `result.json`,
 `events.jsonl` (every agent step and action), and the before/after `frames/`.
+When `learning.enabled` is set, `report.html` also has a **Navigation learning**
+table (one row per navigation attempt: source, verdict, the actions tried,
+start/end frames and whether the strategy was promoted or invalidated), and
+`result.json` carries the same data under `navigation_attempts`. All evidence
+links in both files are relative to the run directory, so a run folder stays
+viewable after it is moved or copied.
 Suites write `artifacts/reports/<ts>-<suite>/` with `suite.html`, `suite.json`
 (including LLM call and token totals) and `junit.xml`. The exit code is 0 only
 when everything passed.

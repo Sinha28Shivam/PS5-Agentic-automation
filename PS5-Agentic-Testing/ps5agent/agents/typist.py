@@ -96,7 +96,17 @@ class TypistAgent(Agent):
             for b in (Action(kind='press', name='square', times=n, interval=0.15,
                              reason='clear mistyped text'), a.model_copy()):
                 if b.kind == 'type':
-                    ctx.rig.reset_keyboard()
+                    # Backspace clears characters but leaves the KEY CURSOR where
+                    # the previous attempt ended, so the typist's tracked position
+                    # is stale. Walking the cursor back to a known key fixes the
+                    # retry; dropping the cached keyboard (reset_keyboard) would
+                    # instead assume focus is at initial_focus and mistype again -
+                    # measured on hardware: "mortal" retyped as "fgggz.".
+                    anchor = getattr(ctx.rig, 'anchor_keyboard', None)
+                    if callable(anchor):
+                        anchor()
+                    else:
+                        ctx.rig.reset_keyboard()
                 rec = run(b)
                 if not rec.allowed:
                     notes.append(self.note(f'{step.id}: retry denied: {rec.blocked_reason}'))

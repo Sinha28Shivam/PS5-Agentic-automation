@@ -1,0 +1,23 @@
+# ===========================================================================
+#  ASTRO's PLAYROOM (PS5, pre-installed) - game profile
+#  System-UI scope only: the rig emulates a DualShock 4 and PS5-native games
+#  expect a DualSense, so in-game menus/gameplay are NOT automated here.
+#  Live captures of this title do not exist yet; record real frames
+#  (python capture\capture.py grab) before adding in-game screens.
+# ===========================================================================
+id: astros_playroom
+name: "ASTRO's PLAYROOM"
+title: "ASTRO's PLAYROOM"
+platform_build: ps5
+notes: >
+  PS5-native title. Only the system UI around it (Home tile, game hub, launch,
+  return to Home via the Control Center) is tested. Do not plan in-game
+  inputs: a DS4 may be rejected by the game.
+launch:
+  # Matched against the focused-tile caption; "playroom" survives OCR of the
+  # apostrophe in "ASTRO's" and needs no PS4/PS5 badge (PS5-only title).
+  tile_text: "playroom"
+  focus_macro: "focus_tile:playroom"
+  start_button: "cross"        # "Play Game" is focused after `down` on the hub
+  boot_seconds: 20
+forbidden: []

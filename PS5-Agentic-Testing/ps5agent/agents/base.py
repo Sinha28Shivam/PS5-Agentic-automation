@@ -45,10 +45,18 @@ class Ctx:
     settings: Any = None
     game_profile: dict[str, Any] | None = None
     last_frame: np.ndarray | None = field(default=None, repr=False)
+    navigation_memory: Any = field(default=None, init=False, repr=False)
+    learning_error: str = field(default='', init=False)
 
     def __post_init__(self) -> None:
         if self.settings is None:
             self.settings = get_settings()
+        from ..core.navigation_memory import build_memory
+        try:
+            self.navigation_memory = build_memory(self)
+        except Exception as exc:
+            self.learning_error = f'navigation memory disabled: {type(exc).__name__}'
+            self.evidence.log('learning_disabled', reason=self.learning_error)
 
     @classmethod
     def build(cls, rig: Any, evidence: Evidence, scenario: Any, settings: Any = None,

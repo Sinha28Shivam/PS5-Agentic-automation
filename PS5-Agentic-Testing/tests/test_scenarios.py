@@ -62,8 +62,13 @@ def test_suite_references_exist(path: Path) -> None:
 
 @pytest.mark.skipif(not ocr.available(), reason='tesseract missing')
 def test_replay_home_navigation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    '''Full graph on real frames. FakeRig advances one frame per action:
-    setup open_home, preflight open_home, ps probe, circle undo, r1, l1.'''
+    '''Full graph on real frames. FakeRig advances one frame per action.
+
+    home_navigation switches tabs with the open_media_tab / open_games_tab
+    macros (a bare r1/l1 is a no-op on hardware), so the action order is:
+    setup open_home, setup open_games_tab, preflight open_home, ps probe,
+    circle undo, open_media_tab, open_games_tab, teardown open_games_tab.
+    '''
     from ps5agent.graph import build as build_mod
     from ps5agent.hw.adapters import FakeRig
     import cv2
@@ -72,11 +77,22 @@ def test_replay_home_navigation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(base, 'SETTLE_OVERRIDE', 0.0)
     monkeypatch.setattr(build_mod.time, 'sleep', lambda s: None)
     monkeypatch.setattr(build_mod, 'new_run_dir', lambda sc, s=None: (tmp_path.name, tmp_path))
-    seq = ['home', 'home', 'home', 'home_media', 'home', 'home_media', 'home']
+    # Frame i is served AFTER action i (FakeRig clamps to the last frame).
+    # Observed action order:
+    #   0 open_home, 1 open_games_tab   scenario setup
+    #   2 open_home, 3 open_games_tab   preflight re-runs setup
+    #   4 triangle,  5 down             preflight input probe (MUST change)
+    #   6,7 open_media_tab              navigator acts, verifier re-grabs
+    #   8,9 open_games_tab              same for the second step
+    # Consecutive frames must differ or the gate trips its dead_input guard,
+    # so the tab frames alternate instead of repeating.
+    seq = (['home'] * 5 + ['control_center', 'home_media', 'home',
+                           'home_media', 'home', 'home_media'] + ['home'] * 8)
     rig = FakeRig(frames=[cv2.imread(str(FRAMES / f'{n}.jpg')) for n in seq])
     st = build_mod.run_scenario(load_scenario(ROOT / 'scenarios/system_ui/home_navigation.yaml'),
                                 rig, checkpoint=False)
     assert st.verdict == Verdict.PASS, st.verdict_reason
     assert [s.id for s in st.plan] == ['to_media', 'to_games']
-    assert 'press:r1' in rig.actions and 'press:l1' in rig.actions
+    assert 'macro:open_media_tab' in rig.actions
+    assert 'macro:open_games_tab' in rig.actions
     assert (tmp_path / 'report.html').is_file()

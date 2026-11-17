@@ -29,10 +29,15 @@ BUTTONS = {
     'triangle': 'Home: jump focus to Search icon; keyboard: space',
     'up/down/left/right': 'move focus (keyboard wraps left/right; never up from keyboard row 0)',
     'options': 'item options menu', 'ps': 'open Control Center (circle closes it)',
-    'l1/r1': 'Home: switch Games/Media; keyboard: cursor left/right',
+    'l1/r1': 'keyboard: cursor left/right. NOTE: on Home these do NOT switch '
+             'Games/Media while focus is in the tile row (measured no-op) - '
+             'use the open_games_tab / open_media_tab macros instead',
     'l2': 'keyboard shift', 'r2': 'keyboard Done -> focus first result (FORBIDDEN on store screens)',
 }
-MACROS = {'open_home': 'circle x3 back to Home (harmless on Home)',
+MACROS = {'open_home': 'circle x3 back to Home. Closes overlays but does NOT '
+                       'restore the Games tab if the console is on Media',
+          'open_games_tab': 'Home: up, left, cross -> select the Games tab (verified)',
+          'open_media_tab': 'Home: up, right, cross -> select the Media tab (verified)',
           'open_search': 'from Home: triangle, cross, cross -> search keyboard open (focus g)',
           'submit_search': 'r2 Done -> focus first search result',
           'confirm': 'cross', 'go_back': 'circle',
@@ -220,6 +225,36 @@ class PlannerAgent(Agent):
             return None
 
     def run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
+        from ..core.navigation_memory import contract
+        from .learning import certified_plan
+        if state.learning_contract:
+            if contract(state) != state.learning_contract:
+                return update(state, ctx, verdict=Verdict.BLOCKED, next_agent='reporter',
+                              verdict_reason='original learning contract changed')
+            cursor = first_pending(state.plan)
+            nxt = state.plan[cursor].agent if cursor < len(state.plan) else 'verifier'
+            return update(state, ctx, cursor=cursor, next_agent=nxt,
+                          notes=[self.note('retrying original plan without rewriting assertions')])
+        result = self._run(state, ctx)
+        if not ctx.settings.get('learning.enabled', False) or not result.get('plan'):
+            return result
+        st = state.model_copy(update=result, deep=True)
+        final = _final_verify(st, len(st.plan))
+        if final and not (st.plan[-1].agent == 'verifier' and st.plan[-1].expect == final.expect):
+            final.id = 'learning-final'
+            st.plan.append(final)
+        notes = list(st.notes)
+        if certified_plan(st):
+            result['learning_contract'] = contract(st)
+        else:
+            notes.append('navigation learning unavailable: plan needs unique navigator/verifier steps with meaningful non-HUD assertions')
+        if ctx.learning_error:
+            notes.append(ctx.learning_error)
+        elif ctx.navigation_memory is None:
+            notes.append('navigation memory unavailable: configure environment_revision and a supported rig')
+        return {**result, 'plan': st.plan, 'notes': notes}
+
+    def _run(self, state: RunState, ctx: Ctx) -> dict[str, Any]:
         notes: list[str] = []
         try:
             det = self.deterministic(state, ctx)

@@ -1,0 +1,19 @@
+id: astro_playroom_soak
+goal: "Soak: repeatedly open the ASTRO's PLAYROOM hub and return Home while the monitor watches for freezes, blank video and DS4 loss"
+type: soak
+tags: [soak, astro]
+setup: [{macro: open_home}, {macro: open_games_tab}]
+steps:
+  - id: focus_tile
+    goal: "Focus the ASTRO's PLAYROOM tile"
+    actions: [{macro: "focus_tile:playroom"}]
+    expect: {text_contains: ["playroom"]}
+  - id: open_hub
+    goal: "Open the game hub"
+    actions: [{press: down}]
+    expect: {screen: game_hub}
+  - id: back_home
+    goal: "Back to the Games tab of Home"
+    actions: [{macro: open_home}, {macro: open_games_tab}]
+    expect: {screen: home}
+limits: {soak_minutes: 3, max_steps: 400}

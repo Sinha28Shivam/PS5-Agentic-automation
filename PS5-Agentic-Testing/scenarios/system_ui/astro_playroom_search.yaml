@@ -1,0 +1,21 @@
+id: astro_playroom_search
+goal: "Search for ASTRO's PLAYROOM with the on-screen keyboard and see it in the results"
+type: system_ui
+tags: [smoke, system, keyboard, astro]
+setup: [{macro: open_home}, {macro: open_games_tab}]
+steps:
+  - id: open_keyboard
+    goal: "Open global search and the on-screen keyboard"
+    actions: [{macro: open_search}]
+    expect: {screen: search_keyboard, screen_changed: true}
+  - id: type_query
+    goal: "Type the game name with the on-screen keyboard"
+    agent: typist
+    actions: [{type: "astro"}]
+    expect: {screen: search_keyboard, text_contains: ["astro"]}
+  - id: submit_query
+    goal: "Submit the search and read the results list"
+    actions: [{macro: submit_search}]
+    expect: {screen: search_results, text_contains: ["playroom"], screen_changed: true}
+teardown: [{macro: open_home}, {macro: open_games_tab}]
+limits: {max_steps: 30}

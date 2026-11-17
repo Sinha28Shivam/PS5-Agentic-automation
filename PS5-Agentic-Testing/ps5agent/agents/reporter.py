@@ -37,7 +37,11 @@ class ReporterAgent:
         finished = time.time()
         updates: dict[str, Any] = {'verdict': verdict, 'verdict_reason': reason,
                                    'finished': finished, 'metrics': metrics}
-        final = st.model_copy(update=updates)
+        from .learning import finalize_learning
+        final = finalize_learning(st.model_copy(update=updates), ctx)
+        updates.update(verdict=final.verdict, verdict_reason=final.verdict_reason,
+                       navigation_attempts=final.navigation_attempts, notes=final.notes)
+        verdict, reason = final.verdict, final.verdict_reason
         paths = write_report(final, ctx.evidence.dir)
         log = getattr(ctx.evidence, 'log', None)
         if callable(log):

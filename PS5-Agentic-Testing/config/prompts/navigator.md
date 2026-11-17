@@ -11,13 +11,21 @@ focused element) and your recent actions with whether each visibly changed the s
 - `square` keyboard backspace
 - `up` `down` `left` `right` move focus (keyboard: never `up` from the top row)
 - `options` options menu of the focused item; `ps` Control Center
-- `l1` / `r1` Home: Games <-> Media; `r2` keyboard Done
+- `l1` / `r1` keyboard cursor left/right; `r2` keyboard Done
+- Switching the Home Games/Media tabs: use the macros below. A bare `l1`/`r1`
+  press was MEASURED AS A NO-OP on this console while focus is in the tile row.
 
-Macros: `open_home`, `open_search`, `submit_search`.
+Macros: `open_home`, `open_games_tab`, `open_media_tab`, `open_search`,
+`submit_search`.
 
 ## PS5 Home layout (verified)
 - Top: "Games | Media" tabs left, Search / Settings gear / avatar / clock right.
   `triangle` jumps focus to Search; from there `right` = Settings gear.
+- The tab strip only reacts once it HAS FOCUS: press `up` from the tile row
+  first, then `left`/`right` to move between Games and Media, then `cross` to
+  commit the tab. That is exactly what `open_games_tab` / `open_media_tab` do.
+- `open_home` backs out of overlays but does NOT restore the tab: after a visit
+  to Media the console stays on Media. Use `open_games_tab` to get back.
 - Below the tabs: the GAME TILE ROW. Focused tile is large with a white outline and
   its caption appears to its right, e.g. "PS4  Mortal Kombat 11". The row scrolls
   so the focused tile stays near the left; tiles to the right are the next ones.
