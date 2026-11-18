@@ -177,3 +177,33 @@ def test_power_menu_lockdown_only_circle(tmp_path):
     assert not g.check(Action(kind="press", name="down"), pm, "t")[0]
     assert g.check(Action(kind="press", name="circle"), pm, "t")[0]
     assert not g.check(Action(kind="hold", name="ps", duration=2.0), ScreenState(), "t")[0]
+
+# ---------------------------------------------------------------- game profile rules
+
+def make_game(tmp_path: Path, profile: dict[str, Any], frames: list[np.ndarray] | None = None
+              ) -> tuple[ActionGate, FakeRig]:
+    rig = FakeRig(frames=frames or [frame(10), frame(80), frame(150)])
+    sc = Scenario(id="t", goal="g", game="g")
+    return ActionGate(rig, Evidence(tmp_path / "run"), sc, FakeSettings(), game_profile=profile), rig
+
+
+def test_profile_macro_expands_through_gate(tmp_path: Path) -> None:
+    gate, rig = make_game(tmp_path, {"macros": {"open_map": {"steps": [{"press": "options"},
+                                                                       {"press": "right"}]}}})
+    rec = gate.execute(Action(kind="macro", name="open_map"), ScreenState(), "navigator", settle=0)
+    assert rec.allowed and rec.sent_ok
+    assert rig.actions == ["press:options", "press:right"]
+
+
+def test_profile_macro_step_still_checked(tmp_path: Path) -> None:
+    gate, rig = make_game(tmp_path, {"macros": {"bad": [{"hold": "ps", "duration": 3}]}})
+    rec = gate.execute(Action(kind="macro", name="bad"), ScreenState(), "navigator", settle=0)
+    assert not rec.allowed and "power menu" in rec.blocked_reason and not rig.actions
+
+
+def test_profile_forbidden_button_on_screen(tmp_path: Path) -> None:
+    gate, _ = make_game(tmp_path, {"forbidden": [{"screen": "game_menu", "buttons": ["r2"]}]})
+    on_menu = ScreenState(screen_id="game_menu")
+    assert gate.check(press("r2"), on_menu, "navigator")[0] is False
+    assert gate.check(press("cross"), on_menu, "navigator")[0] is True
+    assert gate.check(press("r2"), ScreenState(screen_id="home"), "navigator")[0] is True

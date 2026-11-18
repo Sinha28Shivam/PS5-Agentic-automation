@@ -16,7 +16,8 @@ from typing import Any
 from ..core.state import Action, ActionRecord, RunState, ScreenState, Step, Verdict
 from .base import (Agent, Ctx, act, ask_llm, copy_plan, denial, load_prompt, observe,
                    recent_actions, screen_summary, update)
-from .planner import BUTTONS, MACROS, parse_action
+from ..core.macros import catalogue
+from .planner import BUTTONS, game_context, parse_action
 from .verifier import check_expectation
 
 MAX_PER_CALL = 3
@@ -76,7 +77,9 @@ class NavigatorAgent(Agent):
             failures = [a for a in state.navigation_attempts if a.step_id == step.id]
             payload = {'goal': step.goal, 'expect': step.expect.model_dump(mode='json'),
                        'screen': screen_summary(screen), 'attempt': step.attempts,
-                       'max_attempts': step.max_attempts, 'buttons': BUTTONS, 'macros': MACROS,
+                       'max_attempts': step.max_attempts, 'buttons': BUTTONS,
+                       'macros': catalogue(ctx.game_profile, ctx.settings),
+                       'game': game_context(ctx.game_profile),
                        'original_actions': [a.model_dump(mode='json') for a in step.actions],
                        'previous_attempts': [a.model_dump(mode='json') for a in failures[-3:]],
                        'instruction': 'Propose a complete bounded navigation strategy. Do not change assertions.'}
@@ -146,7 +149,8 @@ class NavigatorAgent(Agent):
                        'screen': screen_summary(screen), 'attempt': step.attempts,
                        'max_attempts': step.max_attempts,
                        'recent_actions': recent_actions(list(state.history) + recs),
-                       'buttons': BUTTONS, 'macros': MACROS}
+                       'buttons': BUTTONS, 'macros': catalogue(ctx.game_profile, ctx.settings),
+                       'game': game_context(ctx.game_profile)}
             out = ask_llm(ctx, json.dumps(payload, default=str), system=system, frames=frames,
                           tier='fast', max_tokens=600)
             if not isinstance(out, dict):

@@ -31,17 +31,32 @@ def _empty(exp: Expectation) -> bool:
 
 
 def check_hud(exp: dict[str, Any], gm: dict[str, Any]) -> tuple[Verdict, str] | None:
-    """HUD expectations vs gameplay metrics. None = no hud expectation."""
+    """HUD expectations vs gameplay metrics. None = no hud expectation.
+
+    Keys are names from the game profile's `hud` block:
+      <presence>: true/false   presence reading seen before or after (true) / in neither (false);
+                               a required-but-missing presence means the game was not in
+                               the expected state, so it BLOCKs rather than FAILs
+      <bar>_drop_min: x        bar fell by at least x
+      <bar>_min: x             bar is at least x after the step
+    """
     if not exp:
         return None
     before, after = gm.get('hud_before') or {}, gm.get('hud_after') or {}
     if not after:
         return Verdict.BLOCKED, 'hud expectation but no HUD reading (no game profile hud?)'
-    if exp.get('in_fight') and not (before.get('in_fight') or after.get('in_fight')):
-        return Verdict.BLOCKED, f'not in a fight (hud before={before} after={after})'
     out: list[str] = []
     for key, want in exp.items():
-        if key.endswith('_drop_min'):
+        if isinstance(want, bool):
+            if key not in after:
+                return Verdict.BLOCKED, f'hud {key!r} not readable'
+            seen = bool(before.get(key) or after.get(key))
+            if want and not seen:
+                return Verdict.BLOCKED, f'hud {key} not present (before={before} after={after})'
+            if not want and seen:
+                return Verdict.FAIL, f'hud {key} present, expected absent'
+            out.append(f'{key}={want}')
+        elif key.endswith('_drop_min'):
             bar = key[:-len('_drop_min')]
             if bar not in before or bar not in after:
                 return Verdict.BLOCKED, f'{bar} not readable'

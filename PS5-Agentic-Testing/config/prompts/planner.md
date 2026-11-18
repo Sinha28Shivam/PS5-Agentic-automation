@@ -20,10 +20,9 @@ list of verifiable steps that other agents execute.
 Sticks, share and l3 are NOT verified on system UI.
 
 ## Macros (prefer these over raw presses)
-- `open_home`: circle x3 -> Home (harmless on Home)
-- `open_search`: from Home -> search keyboard open, focus on `g`, shift on
-- `submit_search`: r2 Done -> focus lands on the first result
-- `confirm` (cross), `go_back` (circle)
+The `macros` field of the request lists every macro available in this run with
+its description (console macros from controls.yaml, rig macros, and the game
+profile's own macros). Use only names from that list.
 
 ## Verified PS5 routes (use these, they were proven on hardware)
 - Home -> Settings: `triangle` (focus jumps to the Search icon, top-right bar), `right`
@@ -35,13 +34,13 @@ Sticks, share and l3 are NOT verified on system UI.
   Tiles shift as focus moves, so DON'T plan fixed press counts: use the macro
   `focus_tile:<title_with_underscores>[:ps4|ps5]` (reads the focused-tile caption +
   PS4/PS5 badge and walks the row until it matches), expect `screen: game_hub`.
-  For MK11 there are PS5 AND PS4 tiles - DS4 emulation only works with the PS4 one:
-  `{macro: "focus_tile:mortal_kombat_11:ps4"}`.
-  Then `down` -> focus "Play Game", `cross`, `{wait: 35}`, expect screen `mk11_title`
-  (or for other games a vision claim). Use the game_profile `launch` block if given.
-- After a game title screen, `cross` then handle dialogs/menus by screen id; MK11
-  first-boot has Audio/Video setup pages (KONTINUE at the bottom), promos
-  (`mk11_modal`: cross = NOT NOW) and lands on `mk11_main_menu`.
+  Then `down` -> focus "Play Game", `cross`, a `wait` for boot, and expect the hub/Home
+  text to be gone (`text_absent`), a game screen id, or a vision claim.
+- When `game_profile` is given, it is the source of truth for that title: use its
+  `launch` block (tile text, badge, focus macro, boot time), `notes`, `combos`/`moves`,
+  `forbidden` buttons and screens. Never assume details of a game that is not described.
+- If the game profile says in-game input is unsupported (e.g. a title that rejects the
+  emulated controller), plan only the system UI around the game.
 - Control Center (`ps`) has NO Settings entry; do not use it to reach Settings.
 - In a game, Circle does not reach Home. Use macro `home_from_game` (guarded Control
   Center route). Never press cross on the Control Center icon bar yourself: Power is
@@ -56,7 +55,7 @@ Typing: a `typist` step with `{type: "text"}` AFTER a step that ran `open_search
 - `verifier`: checks `expect` only, sends no input
 
 ## Action shorthand
-`{macro: open_home}` `{press: cross, times: 2, interval: 0.4}` `{type: "astro bot"}`
+`{macro: open_home}` `{press: cross, times: 2, interval: 0.4}` `{type: "some text"}`
 `{hold: r2, duration: 1.0}` `{wait: 2}` `{stick: left_stick, direction: right, duration: 0.3}`
 `{trigger: r2}` `{combo: name}`
 
@@ -69,7 +68,7 @@ that screen's `ocr_text_examples` - OCR does not read headings like "Control Cen
 - Start from a known screen (`open_home`) unless already there.
 - NEVER press cross / r2 / options or type on store, purchase, checkout or account
   screens. Never plan purchases, deletions, sign-out or settings writes.
-- MK11 main menu: R2 opens the STORE - forbidden.
+- Never plan buttons the game profile lists under `forbidden` for a screen.
 - Circle backs out; prefer it when lost.
 - Each step must have a concrete `expect`; use only screen ids from `known_screens`.
 - Keep it short (usually 2-6 steps). On a replan, avoid repeating the failed approach.

@@ -1,0 +1,40 @@
+# ===========================================================================
+#  Game profile TEMPLATE - copy this folder to config/games/<game_id>/ and set
+#  `game: <game_id>` in a scenario. Everything below is optional except `id`.
+#  The base code knows nothing about any game: all title-specific behaviour
+#  lives here and in this folder's screens/ directory.
+#  Folders starting with "_" are ignored by the tests and never loaded at run time
+#  (no scenario uses `game: _template`).
+# ===========================================================================
+id: _template                    # must equal the folder name
+name: "Game Title"
+notes: >                         # free text given to the planner/navigator/gameplay LLMs
+  Controls, goals and quirks of this title.
+
+launch:                          # how to start it from PS5 Home
+  tile_text: "game title"        # words of the focused-tile caption
+  tile_badge: ""                 # "ps4" | "ps5" | "" (when both builds are installed)
+  focus_macro: "focus_tile:game_title"
+  start_button: "cross"
+  boot_seconds: 20
+
+# Named action sequences usable as {macro: <name>} in this game's scenarios.
+# Each step goes through the ActionGate like any other action.
+macros: {}
+#   open_map: {description: "Open the in-game map", steps: [{press: options}, {wait: 1}]}
+
+# Gameplay agent: named inputs. {combo: <name>} expands moves/combos.
+moves: {}
+combos: {}
+action_space: {}                 # explore mode picks from these names (default: plain buttons)
+stop_on: []                      # extra LLM-reported situations that end explore, e.g. [level_complete]
+
+# HUD readers (perception.hud). Bars: 0..1 fraction; presence: 1.0 / 0.0.
+hud: {}
+#   hud_visible: {type: presence, x0: 0, x1: 100, y0: 0, y1: 50, hsv_lo: [0,0,200], hsv_hi: [180,40,255], min: 0.3}
+#   health:      {type: bar, x0: 100, x1: 700, y0: 40, y1: 60, drain: left}
+hud_gate: ""                     # presence name; bars read 0 while it is absent
+
+forbidden: []                    # [{screen: <screen id>, buttons: [r2]}] enforced by the ActionGate
+dialogs: []                      # [{text: "skip tutorial?", answer: circle}] used by recovery
+recover: []                      # shorthand actions to get back to a known in-game screen

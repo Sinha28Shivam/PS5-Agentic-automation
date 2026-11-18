@@ -79,8 +79,9 @@ class Expectation(BaseModel):
     text_absent: list[str] = Field(default_factory=list)
     screen_changed: bool | None = None
     vision: str | None = None             # free-text claim judged by vision LLM
-    # Game HUD checks against metrics['gameplay']['hud_before'/'hud_after'] (perception.hud):
-    #   {"in_fight": true, "p2_health_drop_min": 0.02, "p1_health_min": 0.0}
+    # Game HUD checks against metrics['gameplay']['hud_before'/'hud_after'] (perception.hud).
+    # Keys are names from the game profile's `hud` block, e.g.
+    #   {"<presence>": true, "<bar>_drop_min": 0.02, "<bar>_min": 0.0}
     hud: dict[str, Any] = Field(default_factory=dict)
 
 

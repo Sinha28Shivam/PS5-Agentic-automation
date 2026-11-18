@@ -33,6 +33,7 @@ from ..core import llm
 from ..core.evidence import Evidence
 from ..core.settings import Settings, get_settings
 from ..core.state import RunState, Scenario, Verdict
+from ..perception import signatures
 
 NODES = ("preflight", "planner", "navigator", "typist", "gameplay",
          "verifier", "recovery", "reporter")
@@ -108,6 +109,8 @@ def run_scenario(scenario: Scenario, rig: Any, settings: Settings | None = None,
     s = settings or get_settings()
     run_id, run_dir = new_run_dir(scenario, s)
     ev = Evidence(run_dir)
+    # Console screens are always known; a game's own screens only for its scenarios.
+    signatures.set_game_screens(signatures.game_screens_dir(scenario.game, s))
     ctx = Ctx.build(rig, ev, scenario, s)
     llm.reset_metrics()
     ev.log("run_start", run_id=run_id, scenario=scenario.id, type=scenario.type)

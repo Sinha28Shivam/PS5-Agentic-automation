@@ -10,7 +10,7 @@ step's expected screen) with the fewest harmless inputs.
    Center, search, keyboard).
 3. macro `open_home` (circle x3 with pauses; harmless on Home).
 4. In a game: the game profile's `recover` actions (e.g. pause menu -> quit to
-   main menu). MK11: R2 on the main menu opens the STORE - forbidden.
+   main menu) and its `dialogs` answers. Never open an in-game store.
 
 ## Rules
 - Never confirm dialogs while recovering (no `cross` on delete / sign-out /

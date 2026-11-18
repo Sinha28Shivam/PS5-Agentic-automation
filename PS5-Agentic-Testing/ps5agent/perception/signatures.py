@@ -84,9 +84,25 @@ def screens_dir() -> Path:
     return SCREENS_DIR if SCREENS_DIR is not None else get_settings().config_dir / 'screens'
 
 
-def load_screens(directory: Path | None = None) -> dict[str, Screen]:
-    '''Load every *.yaml in the screens dir (reloaded when files change).'''
-    d = Path(directory or screens_dir())
+# Extra screen directories layered on top of the console screens for the
+# current run (a game's config/games/<game>/screens/). Set by set_game_screens.
+_extra_dirs: tuple[Path, ...] = ()
+
+
+def game_screens_dir(game: str | None, settings: Any = None) -> Path | None:
+    if not game:
+        return None
+    s = settings or get_settings()
+    return Path(s.config_dir) / 'games' / game / 'screens'
+
+
+def set_game_screens(*dirs: Path | None) -> None:
+    '''Activate per-game screen dirs (None/missing ignored). Call with no args to reset.'''
+    global _extra_dirs
+    _extra_dirs = tuple(Path(d) for d in dirs if d is not None and Path(d).is_dir())
+
+
+def _load_dir(d: Path) -> dict[str, Screen]:
     files = sorted(d.glob('*.yaml')) + sorted(d.glob('*.yml')) if d.is_dir() else []
     key = ('screens', str(d), tuple((str(f), f.stat().st_mtime_ns) for f in files))
     if key not in _cache:
@@ -99,6 +115,20 @@ def load_screens(directory: Path | None = None) -> dict[str, Screen]:
                     out[s.id] = s
         _cache[key] = out
     return _cache[key]
+
+
+def load_screens(directory: Path | None = None) -> dict[str, Screen]:
+    '''Console screens (config/screens) plus the active game's screens.
+
+    An explicit directory loads only that directory. Game screens override
+    console screens with the same id. Reloaded when files change.
+    '''
+    if directory is not None:
+        return _load_dir(Path(directory))
+    out = dict(_load_dir(screens_dir()))
+    for d in _extra_dirs:
+        out.update(_load_dir(d))
+    return out
 
 
 def score(screen: Screen, text: str) -> float:

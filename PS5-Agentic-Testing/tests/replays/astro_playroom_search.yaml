@@ -1,0 +1,18 @@
+scenario: scenarios/system_ui/astro_playroom_search.yaml
+# Screen text the fake rig "shows". Built from phrases in config/screens/*.yaml so the
+# real classifier judges it. Replace with real captured frames once recorded.
+screens:
+  home: "games media console storage online friends friend activity"
+  tile: "games media console storage online friends friend activity ps5 astro's playroom"
+  hub: "astro's playroom play game trophies friends who play"
+  game: "astro's playroom press any button"
+  keyboard: "search for games abc done"
+  typed: "search for games astro abc done"
+  results: "go to top switch tabs astro's playroom"
+# Frame 0 = start screen; frame k = screen after action k.
+cases:
+  - name: pass
+    frames: [home, home, home, home, home, home, home, keyboard, typed, results, home, home]
+    steps: [open_keyboard, type_query, submit_query]
+    skip_actions: 6
+    actions: ["macro:open_search", "type:astro", "macro:submit_search"]

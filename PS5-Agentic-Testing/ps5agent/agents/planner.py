@@ -2,9 +2,9 @@
 
 Shorthand actions (also used by hints, profiles and LLM replies):
   {macro: open_home}            {press: cross, times: 2, interval: 0.4}   {button: down}
-  {type: 'astro bot'}           {hold: r2, duration: 1.5}                {wait: 2}
+  {type: 'some text'}           {hold: r2, duration: 1.5}                {wait: 2}
   {stick: left_stick, direction: right, duration: 0.3}                   {trigger: r2, value: 255}
-  {combo: uppercut}  (game profile combo, expanded by GameplayAgent)
+  {combo: <name>}  (game profile combo/move, expanded by GameplayAgent)
   {kind: press, name: cross, ...}  (full Action dict)   'press:cross' / 'macro:open_home' strings
 
 Routing: next_agent = agent of the first PENDING step; 'reporter' (BLOCKED) when no plan.
@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from ..core.macros import catalogue
 from ..core.state import Action, Expectation, RunState, Step, Verdict
 from ..perception import signatures
 from .base import Agent, Ctx, ask_llm, load_prompt, recent_actions, screen_summary, update
@@ -34,15 +35,15 @@ BUTTONS = {
              'use the open_games_tab / open_media_tab macros instead',
     'l2': 'keyboard shift', 'r2': 'keyboard Done -> focus first result (FORBIDDEN on store screens)',
 }
-MACROS = {'open_home': 'circle x3 back to Home. Closes overlays but does NOT '
-                       'restore the Games tab if the console is on Media',
-          'open_games_tab': 'Home: up, left, cross -> select the Games tab (verified)',
-          'open_media_tab': 'Home: up, right, cross -> select the Media tab (verified)',
-          'open_search': 'from Home: triangle, cross, cross -> search keyboard open (focus g)',
-          'submit_search': 'r2 Done -> focus first search result',
-          'confirm': 'cross', 'go_back': 'circle',
-          'home_from_game': 'from inside a game: Control Center -> Home icon (guarded) -> PS5 Home',
-          'focus_tile:<title>[:ps4|ps5]': 'Home game row: walk until focused tile caption matches'}
+GAME_KEYS = ('name', 'title', 'notes', 'launch', 'combos', 'moves', 'action_space',
+             'forbidden', 'stop_on')
+
+
+def game_context(profile: dict[str, Any] | None) -> dict[str, Any] | None:
+    '''The parts of a game profile that help an LLM plan or navigate for that game.'''
+    if not profile:
+        return None
+    return {k: profile[k] for k in GAME_KEYS if profile.get(k) is not None} or None
 
 
 def parse_action(d: Any) -> Action:
@@ -201,12 +202,12 @@ class PlannerAgent(Agent):
                                   'ocr_text_examples': (v.any_text + v.all_text)[:6],
                                   'transitions': v.transitions}
                               for k, v in sorted(signatures.load_screens().items())},
-            'buttons': BUTTONS, 'macros': MACROS, 'agents': list(AGENTS),
+            'buttons': BUTTONS, 'macros': catalogue(ctx.game_profile, ctx.settings),
+            'agents': list(AGENTS),
         }
-        if ctx.game_profile:
-            payload['game_profile'] = {k: ctx.game_profile.get(k) for k in
-                                       ('name', 'notes', 'combos', 'action_space', 'forbidden')
-                                       if ctx.game_profile.get(k) is not None}
+        game = game_context(ctx.game_profile)
+        if game:
+            payload['game_profile'] = game
         if state.replans > 0:
             failed = state.current_step()
             payload['replan'] = {'attempt': state.replans,

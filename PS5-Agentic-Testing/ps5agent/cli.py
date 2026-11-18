@@ -1,10 +1,10 @@
 """ps5agent CLI.
 
-    python -m ps5agent run scenarios/system_ui/search_game.yaml
+    python -m ps5agent run scenarios/<area>/<scenario>.yaml
     python -m ps5agent run --goal "Open Settings and go to System" --type system_ui
     python -m ps5agent suite suites/smoke.yaml
-    python -m ps5agent soak scenarios/soak/home_soak.yaml --minutes 5
-    python -m ps5agent explore --game mk11 --seconds 60
+    python -m ps5agent soak scenarios/soak/<scenario>.yaml --minutes 5
+    python -m ps5agent explore --game <game> --seconds 60   # needs a profile with hud/action_space
     python -m ps5agent screens            # classify the current screen (no input)
     python -m ps5agent graph              # print the agent graph (mermaid)
     --dry-run replays tests/fixtures/frames through FakeRig (no hardware)
@@ -145,11 +145,16 @@ def cmd_soak(a: argparse.Namespace) -> int:
 
 
 def cmd_explore(a: argparse.Namespace) -> int:
+    from .agents.base import load_game_profile
     from .graph.build import run_scenario
+    profile = load_game_profile(a.game) or {}
+    # The game decides what "in play" means: its hud_gate presence check, if any.
+    gate = profile.get("hud_gate")
+    expect = {"hud": {gate: True}} if gate else {}
     sc = Scenario(id=f"{a.game}_explore", type="gameplay_explore", game=a.game,
-                  goal=f"Fight autonomously in {a.game} for {a.seconds}s",
-                  steps=[{"id": "explore", "goal": "explore: play the fight", "agent": "gameplay",
-                          "expect": {"hud": {"in_fight": True}}}],
+                  goal=f"Play {profile.get('name') or a.game} autonomously for {a.seconds}s",
+                  steps=[{"id": "explore", "goal": "explore: play the game", "agent": "gameplay",
+                          "expect": expect}],
                   limits={"explore_seconds": a.seconds, "max_steps": 400,
                           "skip_input_probe": True})
     rig = make_rig(a.dry_run, a.frames)
@@ -163,7 +168,9 @@ def cmd_explore(a: argparse.Namespace) -> int:
 
 
 def cmd_screens(a: argparse.Namespace) -> int:
+    from .perception import signatures
     from .perception.perceive import Perception
+    signatures.set_game_screens(signatures.game_screens_dir(a.game))
     rig = make_rig(a.dry_run, a.frames)
     try:
         f = rig.grab()
@@ -199,9 +206,10 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--type", default="system_ui")
     s = sub.add_parser("suite"); s.add_argument("suite"); s.add_argument("--tag")
     k = sub.add_parser("soak"); k.add_argument("scenario"); k.add_argument("--minutes", type=float)
-    e = sub.add_parser("explore"); e.add_argument("--game", default="mk11")
+    e = sub.add_parser("explore"); e.add_argument("--game", required=True)
     e.add_argument("--seconds", type=float, default=60)
     c = sub.add_parser("screens"); c.add_argument("--vision", action="store_true")
+    c.add_argument("--game", help="also match config/games/<game>/screens")
     sub.add_parser("graph")
     a = ap.parse_args(argv)
     if a.cmd == "run" and not (a.scenario or a.goal):

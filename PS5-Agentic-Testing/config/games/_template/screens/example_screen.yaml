@@ -1,0 +1,9 @@
+# Example game screen. Copy, rename to <screen_id>.yaml and fill in phrases taken
+# from the OCR of a REAL captured frame. Never guess signatures.
+id: example_screen
+description: "What this in-game screen looks like."
+any_text: []
+all_text: []
+none_text: []
+min_score: 0.8
+priority: 6
